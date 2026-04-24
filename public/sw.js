@@ -1,4 +1,4 @@
-const CACHE_NAME = 'foolab-v1';
+const CACHE_NAME = 'foolab-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -10,7 +10,10 @@ const STATIC_ASSETS = [
   '/js/storage.js',
   '/js/scorecard.js',
   '/js/archive.js',
-  '/js/cardexport.js'
+  '/js/cardexport.js',
+  '/icons/logo.svg',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {

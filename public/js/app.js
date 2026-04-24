@@ -21,7 +21,8 @@ const state = {
   currentScan: { photos: [], result: null },
   detailId: null,
   cropper: null,
-  tipTimer: null
+  tipTimer: null,
+  installPrompt: null
 };
 
 document.addEventListener('DOMContentLoaded', init);
@@ -33,6 +34,7 @@ async function init() {
   wireResult();
   wireArchive();
   wireDetail();
+  wireInstall();
   await refreshArchiveCount();
   show('scan');
   registerSW();
@@ -52,6 +54,53 @@ function wireNav() {
   byId('archiveBtn').addEventListener('click', openArchive);
   byId('aboutBtn').addEventListener('click', () => show('about'));
   byId('aboutBackBtn').addEventListener('click', () => show('scan'));
+  byId('shareAppBtn').addEventListener('click', shareApp);
+}
+
+async function shareApp() {
+  const shareData = {
+    title: 'FooLab — food label scanner',
+    text: 'Scan any food label, get a NutriScore and red-flag alerts.',
+    url: location.origin || 'https://foolab.vercel.app'
+  };
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+    } else if (navigator.clipboard) {
+      await navigator.clipboard.writeText(shareData.url);
+      toast('Link copied to clipboard.');
+    } else {
+      toast('Sharing not supported on this device.', { error: true });
+    }
+  } catch (err) {
+    if (err?.name !== 'AbortError') console.warn('Share failed:', err);
+  }
+}
+
+function wireInstall() {
+  const btn = byId('installBtn');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    state.installPrompt = e;
+    btn.hidden = false;
+  });
+  btn.addEventListener('click', async () => {
+    if (!state.installPrompt) return;
+    btn.disabled = true;
+    try {
+      state.installPrompt.prompt();
+      await state.installPrompt.userChoice;
+    } finally {
+      state.installPrompt = null;
+      btn.disabled = false;
+      btn.hidden = true;
+    }
+  });
+  window.addEventListener('appinstalled', () => {
+    state.installPrompt = null;
+    btn.hidden = true;
+    toast('FooLab installed. Find it on your home screen.');
+  });
 }
 
 // --- Scan screen ----------------------------------------------------------
@@ -296,12 +345,11 @@ async function openArchive() {
 }
 
 async function refreshArchiveCount() {
-  try {
-    const n = await storage.count();
-    byId('archiveCount').textContent = String(n);
-  } catch {
-    byId('archiveCount').textContent = '0';
-  }
+  const el = byId('archiveCount');
+  let n = 0;
+  try { n = await storage.count(); } catch {}
+  el.textContent = n > 0 ? String(n) : '';
+  el.dataset.zero = n === 0 ? 'true' : 'false';
 }
 
 // --- Detail ---------------------------------------------------------------

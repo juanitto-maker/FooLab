@@ -6,22 +6,65 @@
   <title>FooLab — food label scanner</title>
   <link rel="stylesheet" href="/css/styles.css">
   <link rel="manifest" href="/manifest.json">
-  <link rel="icon" href="/icons/icon-192.png">
-  <meta name="theme-color" content="#fafaf7">
+  <link rel="icon" type="image/svg+xml" href="/icons/logo.svg">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <meta name="theme-color" content="#1b5e20">
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-inner">
-      <h1 class="brand">FooLab</h1>
-      <nav class="topbar-nav">
-        <button class="nav-btn" id="archiveBtn" type="button">
-          <span aria-hidden="true">📚</span>
-          <span>Archive</span>
-          <span class="count" id="archiveCount">0</span>
+      <a class="brand" href="/" aria-label="FooLab home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 512 512" width="32" height="32">
+            <defs>
+              <linearGradient id="brand-bg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#2e7d32"/>
+                <stop offset="100%" stop-color="#1b5e20"/>
+              </linearGradient>
+            </defs>
+            <rect width="512" height="512" rx="112" fill="url(#brand-bg)"/>
+            <g transform="translate(256 256) rotate(-28) translate(-256 -256)">
+              <path d="M 400 128 Q 160 160 128 384 Q 352 352 400 128 Z" fill="#ffffff"/>
+              <path d="M 400 128 L 128 384" stroke="#a5d6a7" stroke-width="10" stroke-linecap="round" fill="none"/>
+            </g>
+            <rect x="48" y="252" width="416" height="8" rx="4" fill="#fff59d"/>
+          </svg>
+        </span>
+        <span class="brand-text">
+          <span class="brand-name">FooLab</span>
+          <span class="brand-tag">food label scanner</span>
+        </span>
+      </a>
+
+      <nav class="topbar-nav" aria-label="App actions">
+        <button class="icon-btn" id="archiveBtn" type="button" aria-label="Open archive" title="Archive">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+              d="M8 4h10a2 2 0 0 1 2 2v10"/>
+            <rect x="4" y="8" width="14" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+              d="M7 16l3-3 3 2 4-4"/>
+          </svg>
+          <span class="count" id="archiveCount" data-zero="true"></span>
         </button>
-        <button class="nav-btn" id="aboutBtn" type="button">
-          <span aria-hidden="true">ℹ</span>
-          <span>About</span>
+        <button class="icon-btn" id="shareAppBtn" type="button" aria-label="Share FooLab" title="Share">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+              d="M12 16V4M12 4l-4 4M12 4l4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="installBtn" type="button" aria-label="Install app" title="Install" hidden>
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+              d="M12 4v12M12 16l-4-4M12 16l4-4M5 20h14"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="aboutBtn" type="button" aria-label="About FooLab" title="About">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+              d="M12 11v5M12 8h.01"/>
+          </svg>
         </button>
       </nav>
     </div>
@@ -31,18 +74,75 @@
 
     <!-- 1. SCAN -->
     <section class="screen" id="screen-scan">
-      <div class="scan-hero">
+      <div class="hero-card">
+        <div class="hero-badge" aria-hidden="true">
+          <svg viewBox="0 0 512 512" width="64" height="64">
+            <defs>
+              <linearGradient id="hero-bg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#43a047"/>
+                <stop offset="100%" stop-color="#1b5e20"/>
+              </linearGradient>
+            </defs>
+            <rect width="512" height="512" rx="112" fill="url(#hero-bg)"/>
+            <g transform="translate(256 256) rotate(-28) translate(-256 -256)">
+              <path d="M 400 128 Q 160 160 128 384 Q 352 352 400 128 Z" fill="#ffffff"/>
+              <path d="M 400 128 L 128 384" stroke="#a5d6a7" stroke-width="10" stroke-linecap="round" fill="none"/>
+              <path d="M 336 192 Q 272 232 216 256" stroke="#c8e6c9" stroke-width="6" stroke-linecap="round" fill="none"/>
+              <path d="M 272 256 Q 224 288 184 320" stroke="#c8e6c9" stroke-width="6" stroke-linecap="round" fill="none"/>
+            </g>
+            <rect x="48" y="252" width="416" height="8" rx="4" fill="#fff59d"/>
+            <circle cx="256" cy="256" r="10" fill="#fff59d"/>
+          </svg>
+        </div>
+        <h2 class="hero-title">Know what's inside</h2>
+        <p class="hero-sub">Snap a label, get a NutriScore grade and red-flag alerts in seconds.</p>
+
         <button class="btn btn-primary btn-hero" id="cameraBtn" type="button">
-          <span class="btn-hero-icon" aria-hidden="true">📷</span>
+          <svg class="btn-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+              d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/>
+            <circle cx="12" cy="13" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/>
+          </svg>
           <span>Scan a label</span>
         </button>
         <input type="file" accept="image/*" capture="environment" id="cameraInput" hidden>
 
         <button class="btn btn-secondary" id="galleryBtn" type="button">
-          <span aria-hidden="true">🖼</span>
+          <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            <circle cx="9" cy="10" r="1.6" fill="currentColor"/>
+            <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"
+              d="M5 17l4-5 3 3 3-4 4 5"/>
+          </svg>
           <span>Choose from gallery</span>
         </button>
         <input type="file" accept="image/*" id="galleryInput" hidden>
+      </div>
+
+      <div class="feature-row">
+        <div class="feature">
+          <div class="feature-icon" style="background:linear-gradient(135deg,#2e7d32,#66bb6a)">A</div>
+          <div>
+            <div class="feature-title">NutriScore A–E</div>
+            <div class="feature-sub">Grade + 0–100 score</div>
+          </div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon flag">!</div>
+          <div>
+            <div class="feature-title">Red-flag alerts</div>
+            <div class="feature-sub">Palm oil, E-numbers, sugar</div>
+          </div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon lock">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 10V8a6 6 0 0 1 12 0v2M5 10h14v10H5z"/></svg>
+          </div>
+          <div>
+            <div class="feature-title">On-device archive</div>
+            <div class="feature-sub">Nothing stored on a server</div>
+          </div>
+        </div>
       </div>
 
       <div class="tips-card">
@@ -74,7 +174,10 @@
     <!-- 3. ANALYZING -->
     <section class="screen" id="screen-analyzing" hidden>
       <div class="analyzing-box">
-        <div class="spinner" aria-hidden="true"></div>
+        <div class="scan-animation" aria-hidden="true">
+          <div class="scan-ring"></div>
+          <div class="scan-beam"></div>
+        </div>
         <p class="analyzing-tip" id="analyzingTip">Reading ingredients…</p>
       </div>
     </section>
@@ -84,15 +187,24 @@
       <div id="resultMount"></div>
       <div class="result-actions">
         <button class="btn btn-primary" id="saveBtn" type="button">
-          <span aria-hidden="true">💾</span>
+          <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+              d="M5 3h11l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM7 3v5h9V3M7 21v-7h10v7"/>
+          </svg>
           <span>Save</span>
         </button>
         <button class="btn btn-secondary" id="shareBtn" type="button">
-          <span aria-hidden="true">📤</span>
+          <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+              d="M12 16V4M12 4l-4 4M12 4l4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>
+          </svg>
           <span>Share</span>
         </button>
         <button class="btn btn-ghost" id="rescanBtn" type="button">
-          <span aria-hidden="true">🔄</span>
+          <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+              d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/>
+          </svg>
           <span>Rescan</span>
         </button>
       </div>
@@ -106,7 +218,12 @@
       </div>
       <div class="archive-grid" id="archiveGrid"></div>
       <div class="empty-state" id="archiveEmpty" hidden>
-        <p class="empty-emoji" aria-hidden="true">📭</p>
+        <div class="empty-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="56" height="56">
+            <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+              d="M3 7h18M5 7v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        </div>
         <p>No scans yet. Try your first one.</p>
         <button class="btn btn-primary" id="archiveScanBtn" type="button">Scan a label</button>
       </div>
@@ -120,17 +237,23 @@
       <div id="detailMount"></div>
       <div class="result-actions">
         <button class="btn btn-secondary" id="detailShareBtn" type="button">
-          <span aria-hidden="true">📤</span>
+          <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+              d="M12 16V4M12 4l-4 4M12 4l4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>
+          </svg>
           <span>Share</span>
         </button>
         <button class="btn btn-danger" id="deleteBtn" type="button">
-          <span aria-hidden="true">🗑</span>
+          <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+              d="M4 7h16M9 7V4h6v3M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13M10 11v7M14 11v7"/>
+          </svg>
           <span>Delete</span>
         </button>
       </div>
     </section>
 
-    <!-- ABOUT (overlay on scan) -->
+    <!-- ABOUT -->
     <section class="screen" id="screen-about" hidden>
       <div class="screen-header">
         <button class="btn btn-ghost" id="aboutBackBtn" type="button">← Back</button>
