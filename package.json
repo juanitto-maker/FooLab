@@ -1,0 +1,7 @@
+{
+  "name": "foolab",
+  "version": "0.1.0",
+  "description": "AI-powered food & drink label scanner — NutriScore grade plus red-flag alerts from a phone photo.",
+  "private": true,
+  "type": "module"
+}

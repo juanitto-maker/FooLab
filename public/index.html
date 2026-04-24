@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>FooLab — food label scanner</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icons/icon-192.png">
+  <meta name="theme-color" content="#fafaf7">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <h1 class="brand">FooLab</h1>
+      <nav class="topbar-nav">
+        <button class="nav-btn" id="archiveBtn" type="button">
+          <span aria-hidden="true">📚</span>
+          <span>Archive</span>
+          <span class="count" id="archiveCount">0</span>
+        </button>
+        <button class="nav-btn" id="aboutBtn" type="button">
+          <span aria-hidden="true">ℹ</span>
+          <span>About</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="app">
+
+    <!-- 1. SCAN -->
+    <section class="screen" id="screen-scan">
+      <div class="scan-hero">
+        <button class="btn btn-primary btn-hero" id="cameraBtn" type="button">
+          <span class="btn-hero-icon" aria-hidden="true">📷</span>
+          <span>Scan a label</span>
+        </button>
+        <input type="file" accept="image/*" capture="environment" id="cameraInput" hidden>
+
+        <button class="btn btn-secondary" id="galleryBtn" type="button">
+          <span aria-hidden="true">🖼</span>
+          <span>Choose from gallery</span>
+        </button>
+        <input type="file" accept="image/*" id="galleryInput" hidden>
+      </div>
+
+      <div class="tips-card">
+        <h2>Tips for a good scan</h2>
+        <ul>
+          <li>Fill the frame with the ingredients list.</li>
+          <li>Bright, even light — avoid glare on shiny packaging.</li>
+          <li>Hold steady, tap to focus until the text is sharp.</li>
+          <li>Add a second photo of the nutrition table for the best grade.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2. CROP -->
+    <section class="screen" id="screen-crop" hidden>
+      <div class="crop-stage">
+        <canvas id="cropCanvas"></canvas>
+      </div>
+      <div class="crop-actions">
+        <button class="btn btn-ghost" id="cropBackBtn" type="button">← Back</button>
+        <button class="btn btn-secondary" id="addPhotoBtn" type="button">+ Add photo</button>
+        <input type="file" accept="image/*" capture="environment" id="addPhotoInput" hidden>
+        <button class="btn btn-primary" id="analyzeBtn" type="button">Analyze →</button>
+      </div>
+      <p class="photo-meta" id="photoMeta">Photo 1 of 1</p>
+      <div class="photo-strip" id="photoStrip"></div>
+    </section>
+
+    <!-- 3. ANALYZING -->
+    <section class="screen" id="screen-analyzing" hidden>
+      <div class="analyzing-box">
+        <div class="spinner" aria-hidden="true"></div>
+        <p class="analyzing-tip" id="analyzingTip">Reading ingredients…</p>
+      </div>
+    </section>
+
+    <!-- 4. RESULT -->
+    <section class="screen" id="screen-result" hidden>
+      <div id="resultMount"></div>
+      <div class="result-actions">
+        <button class="btn btn-primary" id="saveBtn" type="button">
+          <span aria-hidden="true">💾</span>
+          <span>Save</span>
+        </button>
+        <button class="btn btn-secondary" id="shareBtn" type="button">
+          <span aria-hidden="true">📤</span>
+          <span>Share</span>
+        </button>
+        <button class="btn btn-ghost" id="rescanBtn" type="button">
+          <span aria-hidden="true">🔄</span>
+          <span>Rescan</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 5. ARCHIVE -->
+    <section class="screen" id="screen-archive" hidden>
+      <div class="screen-header">
+        <button class="btn btn-ghost" id="archiveBackBtn" type="button">← Back</button>
+        <h2>Archive</h2>
+      </div>
+      <div class="archive-grid" id="archiveGrid"></div>
+      <div class="empty-state" id="archiveEmpty" hidden>
+        <p class="empty-emoji" aria-hidden="true">📭</p>
+        <p>No scans yet. Try your first one.</p>
+        <button class="btn btn-primary" id="archiveScanBtn" type="button">Scan a label</button>
+      </div>
+    </section>
+
+    <!-- 6. DETAIL -->
+    <section class="screen" id="screen-detail" hidden>
+      <div class="screen-header">
+        <button class="btn btn-ghost" id="detailBackBtn" type="button">← Archive</button>
+      </div>
+      <div id="detailMount"></div>
+      <div class="result-actions">
+        <button class="btn btn-secondary" id="detailShareBtn" type="button">
+          <span aria-hidden="true">📤</span>
+          <span>Share</span>
+        </button>
+        <button class="btn btn-danger" id="deleteBtn" type="button">
+          <span aria-hidden="true">🗑</span>
+          <span>Delete</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ABOUT (overlay on scan) -->
+    <section class="screen" id="screen-about" hidden>
+      <div class="screen-header">
+        <button class="btn btn-ghost" id="aboutBackBtn" type="button">← Back</button>
+        <h2>About FooLab</h2>
+      </div>
+      <div class="about-body">
+        <p>FooLab reads food and drink labels with AI and gives you a NutriScore grade plus red-flag alerts — palm oil, artificial colors, controversial additives, high sugar or salt.</p>
+        <p><strong>Privacy:</strong> scans live only on this phone. No account, no server database. Only the photo you take is sent to the AI for analysis and then discarded.</p>
+        <p><strong>Not medical advice.</strong> Use alongside your own judgement and any dietary guidance from your doctor.</p>
+        <p class="muted">v0.1 · NutriScore method: <a href="https://nutriscore.ca/" target="_blank" rel="noopener">nutriscore.ca</a></p>
+      </div>
+    </section>
+
+    <!-- Error toast -->
+    <div class="toast" id="toast" hidden></div>
+  </main>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

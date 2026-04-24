@@ -1,0 +1,53 @@
+# APK build placeholder.
+#
+# TODO — before enabling, confirm the exact secret names that hold the
+# keystore material (base64 .jks, keystore password, key alias, key password)
+# from the previous project. Then update the `env:` block below and remove
+# this placeholder comment.
+#
+# Expected (rename if your repo uses different names):
+#   ANDROID_KEYSTORE_BASE64  — the .jks file, base64-encoded
+#   ANDROID_KEYSTORE_PASSWORD
+#   ANDROID_KEY_ALIAS
+#   ANDROID_KEY_PASSWORD
+#
+# Approach: wrap the PWA as a TWA (Trusted Web Activity) via Bubblewrap,
+# pointing at the deployed Vercel URL. The web app itself stays the source
+# of truth; the APK is just a thin Android shell.
+
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: 'Deployed PWA URL to wrap (e.g. https://foolab.vercel.app)'
+        required: true
+        default: 'https://foolab.vercel.app'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      # TODO: restore keystore from secrets, run `bubblewrap init --manifest`
+      # against "${{ github.event.inputs.app_url }}/manifest.json", then
+      # `bubblewrap build --skipPwaValidation`, then upload the signed APK
+      # as an artifact.
+      - name: Placeholder
+        run: echo "APK workflow stub — complete once keystore secret names are confirmed."
