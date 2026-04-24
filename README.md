@@ -16,36 +16,50 @@ AI-powered food & drink label scanner. Point your phone at a product's ingredien
 ## Tech Stack
 
 - Frontend: vanilla HTML/CSS/JS (no build step)
-- Backend: one Vercel serverless function (`/api/scan.js`)
+- Backend: a single `/api/scan` endpoint. Core logic lives in `lib/scan-core.js` and is reused by thin adapters for Vercel (`api/scan.js`) and Netlify (`netlify/functions/scan.js`).
 - AI: Google Gemini 2.5 Flash (vision)
 - Storage: IndexedDB (swappable to Supabase later)
-- APK: GitHub Actions + PWA-to-APK pipeline
+- APK: GitHub Actions + PWA-to-APK pipeline (Bubblewrap TWA)
 
 ## Deploy
 
-### 1. Vercel (hosting + serverless API)
+Pick one host. Both use the same `/api/scan` URL from the client's perspective.
+
+### Option A — Vercel
 
 1. Fork this repo on GitHub
 2. Vercel → New Project → Import repo
-3. Add env var in Vercel dashboard:
-   - `GEMINI_API_KEY` — get one from https://aistudio.google.com/apikey
-4. Deploy. That's it.
+3. Add env vars in Vercel dashboard:
+   - `GEMINI_API_KEY` (required) — get one from https://aistudio.google.com/apikey
+   - `PUBLIC_APP_URL` (optional) — sent as `Referer` to Gemini, e.g. `https://foolab.vercel.app`
+4. Deploy. `vercel.json` sets a 30 s function timeout.
 
-### 2. Android APK (optional)
+### Option B — Netlify
 
-Add these secrets to the GitHub repo (Settings → Secrets and variables → Actions):
-- `KEYSTORE_BASE64` — base64-encoded keystore
-- `KEYSTORE_PASSWORD`
-- `KEY_ALIAS` — e.g. `my-release-key`
-- `KEY_PASSWORD`
-- `PWA_URL` — your deployed Vercel URL
+1. Fork this repo on GitHub
+2. Netlify → Add new site → Import from Git
+3. Build settings come from `netlify.toml` (publish `public/`, functions in `netlify/functions`)
+4. Add env vars in Site settings → Environment variables:
+   - `GEMINI_API_KEY` (required)
+   - `PUBLIC_APP_URL` (optional)
+5. Deploy. `netlify.toml` rewrites `/api/*` → `/.netlify/functions/:splat`.
 
-Push to `main` → workflow builds a signed APK → download from Actions artifacts.
+Note: sync Netlify Functions on the Free plan have a 10 s timeout. A Gemini call on three large photos can occasionally exceed that — shrink `MAX_IMAGES` in `lib/scan-core.js` or upgrade the plan if you see sporadic 502s.
+
+### Android APK (optional)
+
+The workflow at `.github/workflows/android-apk.yml` is a placeholder that wraps the deployed PWA as a TWA via [Bubblewrap](https://github.com/GoogleChromeLabs/bubblewrap). Before enabling it, add these secrets to the GitHub repo (Settings → Secrets and variables → Actions):
+- `ANDROID_KEYSTORE_BASE64` — base64-encoded `.jks` file
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+
+Then run the workflow manually (Actions → **Build Android APK** → Run workflow) and pass your deployed PWA URL as input. The signed APK is uploaded as an Actions artifact.
 
 ## Usage
 
 1. Open FooLab
-2. Tap **Scan Label** — take a clear photo of the ingredients list (tap to focus, get close)
+2. Tap **Scan a label** — take a clear photo of the ingredients list (tap to focus, get close)
 3. Drag the crop box tight around the label text, tap **Analyze**
 4. Read the NutriScore + red flags
 5. Tap **Save** to archive or **Share** for a PNG card
@@ -55,25 +69,34 @@ Push to `main` → workflow builds a signed APK → download from Actions artifa
 ```
 foolab/
 ├── api/
-│   ├── scan.js              # Vercel serverless — calls Gemini
-│   └── prompt.js            # prompt template exported from PROMPT.md
+│   ├── scan.js              # Vercel serverless adapter → runScan()
+│   └── prompt.js            # Gemini prompt exported from PROMPT.md
+├── lib/
+│   └── scan-core.js         # Framework-neutral scan pipeline (shared)
+├── netlify/
+│   └── functions/
+│       └── scan.js          # Netlify Functions adapter → runScan()
 ├── public/
 │   ├── index.html
 │   ├── manifest.json
-│   ├── sw.js
-│   ├── icons/
-│   ├── styles.css
+│   ├── sw.js                # PWA service worker, cache-first
+│   ├── css/styles.css
+│   ├── icons/               # logo.svg + 192/512 PNG icons
+│   ├── data/
+│   │   └── enumbers.json    # Curated E-number reference DB
 │   └── js/
 │       ├── app.js           # screen router + wiring
 │       ├── camera.js        # capture + compress
 │       ├── cropper.js       # drag-corner crop
 │       ├── storage.js       # IndexedDB wrapper
 │       ├── scorecard.js     # result card rendering
+│       ├── additives.js     # E-number lookup + chronic-condition helpers
 │       ├── archive.js       # list + detail
 │       └── cardexport.js    # PNG export + share
-├── .github/workflows/build-apk.yml
+├── .github/workflows/android-apk.yml
+├── netlify.toml             # Netlify build + /api/* rewrite
+├── vercel.json              # Vercel function config (30 s timeout)
 ├── package.json
-├── vercel.json
 ├── CLAUDE.md                # dev brief for Claude Code
 ├── PROMPT.md                # Gemini prompt (source of truth)
 └── README.md
