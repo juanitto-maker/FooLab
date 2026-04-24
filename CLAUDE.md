@@ -202,6 +202,7 @@ Manual only in v1 (no test framework). Verify before each deploy:
 - Personal diet profile filters
 - Push notifications
 - Meal history / trend analytics
+- **Bring-your-own Gemini API key**: each user gets a small quota of trial scans on the shared app key, then is prompted to paste their own Gemini API key (🔑 icon in header) to keep using the app. Key stored in `localStorage` on-device only, sent per-request to `api/scan.js`, which prefers it over the shared env key. Modal includes a "How to get a key" link to Google AI Studio (`https://aistudio.google.com/apikey`) and a short tutorial for AI newcomers. Trial counter tracked in `localStorage` (cheat-able, but acceptable for honor-system beta).
 
 ## References
 
