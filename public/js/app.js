@@ -1,7 +1,7 @@
 // Screen router, global state, event wiring. Feature logic lives in the
 // sibling modules.
 
-import { openCamera, openGallery, compressImage, blobToBase64 } from './camera.js';
+import { openCamera, openGallery, compressImage } from './camera.js';
 import { initCropper } from './cropper.js';
 import { renderScorecard } from './scorecard.js';
 import { renderArchiveGrid, clearArchiveGrid } from './archive.js';
@@ -74,15 +74,37 @@ async function ingestPhoto(file, { first }) {
       state.currentScan = { photos: [photo], cropped: null, result: null };
     } else {
       if (state.currentScan.photos.length >= 3) {
-        toast('Max 3 photos. Remove one first.');
+        toast('Max 3 photos. Remove one first.', { error: true });
         return;
       }
+      // Commit the current photo's crop before moving on so earlier shots
+      // aren't discarded when a new one is added.
+      await commitCurrentCrop();
       state.currentScan.photos.push(photo);
     }
     await enterCrop();
   } catch (err) {
     console.error(err);
-    toast(err.message || 'Could not process photo.');
+    toast(err.message || 'Could not process photo.', { error: true });
+  }
+}
+
+async function commitCurrentCrop() {
+  if (!state.cropper) return;
+  try {
+    const cropped = await state.cropper.getCrop();
+    const photos = state.currentScan.photos;
+    const i = photos.length - 1;
+    if (i >= 0) {
+      photos[i] = {
+        base64: cropped.base64,
+        blob: cropped.blob,
+        width: cropped.width,
+        height: cropped.height
+      };
+    }
+  } catch (err) {
+    console.warn('Could not commit crop:', err);
   }
 }
 
@@ -140,13 +162,13 @@ function destroyCropper() {
 
 async function runAnalysis() {
   const photos = state.currentScan.photos;
-  if (photos.length === 0) return toast('Take a photo first.');
+  if (photos.length === 0) return toast('Take a photo first.', { error: true });
 
   let cropped;
   try {
     cropped = await state.cropper.getCrop();
   } catch (err) {
-    return toast(err.message || 'Could not crop photo.');
+    return toast(err.message || 'Could not crop photo.', { error: true });
   }
 
   // Replace the last photo with its cropped version for archive display.
@@ -181,7 +203,7 @@ async function runAnalysis() {
   } catch (err) {
     stopTipRotation();
     console.error('Analyze failed:', err);
-    toast(err.message || 'Analysis failed.');
+    toast(err.message || 'Analysis failed.', { error: true });
     show('crop');
     // Rebuild cropper on the last photo so user can retry.
     const active = photos[photos.length - 1];
@@ -239,7 +261,7 @@ async function saveCurrent() {
     toast('Saved to archive.');
   } catch (err) {
     console.error(err);
-    toast(err.message || 'Could not save.');
+    toast(err.message || 'Could not save.', { error: true });
   }
 }
 
@@ -254,7 +276,7 @@ async function shareCurrent() {
     });
   } catch (err) {
     console.error(err);
-    toast(err.message || 'Could not share.');
+    toast(err.message || 'Could not share.', { error: true });
   }
 }
 
@@ -272,7 +294,7 @@ async function openArchive() {
   try {
     await renderArchiveGrid(grid, empty, openDetail);
   } catch (err) {
-    toast(err.message || 'Could not open archive.');
+    toast(err.message || 'Could not open archive.', { error: true });
     return;
   }
   show('archive');
@@ -297,7 +319,7 @@ function wireDetail() {
 
 async function openDetail(id) {
   const scan = await storage.get(id);
-  if (!scan) return toast('Scan not found.');
+  if (!scan) return toast('Scan not found.', { error: true });
   state.detailId = id;
   renderScorecard(scan.result, scan.thumbnail, byId('detailMount'));
   show('detail');
@@ -310,7 +332,7 @@ async function shareDetail() {
   try {
     await exportCard(scan);
   } catch (err) {
-    toast(err.message || 'Could not share.');
+    toast(err.message || 'Could not share.', { error: true });
   }
 }
 
@@ -323,13 +345,13 @@ async function deleteDetail() {
     await refreshArchiveCount();
     openArchive();
   } catch (err) {
-    toast(err.message || 'Could not delete.');
+    toast(err.message || 'Could not delete.', { error: true });
   }
 }
 
 // --- Utilities ------------------------------------------------------------
 
-function toast(message, { error = true } = {}) {
+function toast(message, { error = false } = {}) {
   const t = byId('toast');
   t.textContent = message;
   t.className = 'toast' + (error ? ' toast-error' : '');
