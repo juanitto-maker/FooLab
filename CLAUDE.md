@@ -27,13 +27,17 @@ Target user: health-conscious shopper. Target device: **Android phone**. Develop
 
 ### Backend
 
-**`api/scan.js`** — single Vercel serverless endpoint.
-- `POST` with `{ images: [base64], language: "en" }`
+**`lib/scan-core.js`** — framework-neutral scan pipeline. Exports `runScan({ images, language, geminiApiKey, publicAppUrl })` returning `{ status, body }`.
+- Validates `images` (1–3 accepted, empty → 400) and env (`GEMINI_API_KEY` missing → 500)
 - Calls Gemini 2.5 Flash with inline image parts + prompt imported from `api/prompt.js`
-- Returns parsed JSON matching the schema in `PROMPT.md`
-- Retries x2 on 429 / 503 with exponential backoff
-- Rate-limit classification returns human-friendly message (reuse pattern from LMA `analyze.js`)
-- Env: `GEMINI_API_KEY` (required)
+- Retries x2 on 429 / 503 with exponential backoff (2 s, 4 s)
+- Parses + validates the JSON response; missing required keys → 500 with "AI returned an invalid response, please retry."
+- Rate-limit classifier distinguishes per-minute vs per-day quota from Gemini error details
+- `PUBLIC_APP_URL` (optional) is sent as `Referer` to Gemini
+
+**`api/scan.js`** — thin Vercel adapter. `POST` only. Reads `req.body`, delegates to `runScan`, returns `res.status(...).json(...)`. Body limit 5 MB via `config.api.bodyParser`.
+
+**`netlify/functions/scan.js`** — thin Netlify Functions adapter. Same contract; parses `event.body` as JSON and returns `{ statusCode, headers, body: JSON.stringify(...) }`. `netlify.toml` rewrites `/api/*` → `/.netlify/functions/:splat`, so the client URL is `/api/scan` on either host.
 
 **`api/prompt.js`** — exports the prompt string from `PROMPT.md` as a JS template literal. Keep these two files in sync: PROMPT.md is the source of truth, prompt.js mirrors it.
 
@@ -67,6 +71,10 @@ Target user: health-conscious shopper. Target device: **Android phone**. Develop
 - On `save()`: if count > 50, delete oldest by timestamp
 - All methods Promise-based
 - Swap to Supabase later = rewrite this file only; interface stays identical
+
+**`public/js/additives.js`** — client-side E-number helpers. Lazy-loads `public/data/enumbers.json` once, caches the index, exposes `loadEnumbersDB()` and `lookupAdditive(db, code)`. Also surfaces chronic-condition warnings (diabetes, hypertension, PKU, sulfite sensitivity, etc.) via the `conditions` map. Pure functions, no storage, no API calls.
+
+**`public/data/enumbers.json`** — curated E-number reference database. Entries follow the same `low/medium/high` concern rubric used elsewhere. Bump the `updated` field when adding entries.
 
 **`public/js/scorecard.js`** — render result view.
 - `renderScorecard(resultJSON, photoBlob, containerEl)`
@@ -109,7 +117,7 @@ Target user: health-conscious shopper. Target device: **Android phone**. Develop
 
 ## UI Screens
 
-1. **scan** — hero camera button (📷 + label), secondary "🖼 Gallery", header links "📚 Archive (N)" + "ℹ About", tips card below
+1. **scan** — hero "Scan a label" camera button + secondary "Choose from gallery". Top bar carries the brand and four icon buttons: Archive (with unread count badge), Share app, Install (shown only when `beforeinstallprompt` fires), About. Feature row + tips card below.
 2. **crop** — photo with draggable crop box, "+ Add another photo" (max 3), **Analyze** (primary)
 3. **analyzing** — centered spinner + rotating tip text ("Reading ingredients…", "Checking E-numbers…")
 4. **result** — scorecard + action row Save / Share / Rescan
