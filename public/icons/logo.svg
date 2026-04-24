@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="FooLab">
+  <defs>
+    <linearGradient id="fl-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2e7d32"/>
+      <stop offset="100%" stop-color="#1b5e20"/>
+    </linearGradient>
+    <linearGradient id="fl-leaf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e8f5e9"/>
+    </linearGradient>
+    <linearGradient id="fl-scan" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fdd835" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#fff59d" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#fdd835" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="fl-glow" x="-10%" y="-40%" width="120%" height="180%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+
+  <!-- badge -->
+  <rect width="512" height="512" rx="112" fill="url(#fl-bg)"/>
+
+  <!-- subtle corner highlight -->
+  <path d="M 0 112 A 112 112 0 0 1 112 0 L 0 0 Z" fill="#ffffff" opacity="0.06"/>
+
+  <!-- leaf, diagonally oriented -->
+  <g transform="translate(256 256) rotate(-28) translate(-256 -256)">
+    <path d="M 400 128
+             Q 160 160 128 384
+             Q 352 352 400 128 Z"
+          fill="url(#fl-leaf)"/>
+    <!-- mid-vein -->
+    <path d="M 400 128 L 128 384"
+          stroke="#a5d6a7" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <!-- side veins -->
+    <path d="M 336 192 Q 272 232 216 256" stroke="#c8e6c9" stroke-width="5" stroke-linecap="round" fill="none" opacity="0.8"/>
+    <path d="M 272 256 Q 224 288 184 320" stroke="#c8e6c9" stroke-width="5" stroke-linecap="round" fill="none" opacity="0.8"/>
+  </g>
+
+  <!-- scan beam glow -->
+  <rect x="32" y="244" width="448" height="24" rx="12" fill="url(#fl-scan)" filter="url(#fl-glow)" opacity="0.9"/>
+  <!-- scan beam line -->
+  <rect x="48" y="252" width="416" height="8" rx="4" fill="#fff59d"/>
+  <!-- scan dot marker -->
+  <circle cx="256" cy="256" r="10" fill="#fff59d"/>
+</svg>
