@@ -18,7 +18,7 @@ const TIPS = [
 ];
 
 const state = {
-  currentScan: { photos: [], cropped: null, result: null },
+  currentScan: { photos: [], result: null },
   detailId: null,
   cropper: null,
   tipTimer: null
@@ -68,17 +68,27 @@ function wireScan() {
 async function ingestPhoto(file, { first }) {
   try {
     const { base64, blob, width, height } = await compressImage(file);
-    const photo = { base64, blob, width, height };
+    // Each photo keeps the compressed original always, plus an optional
+    // crop. The original is what shows in the archive card and the share
+    // PNG; the crop is what we send to Gemini.
+    const photo = {
+      originalBase64: base64,
+      originalBlob: blob,
+      originalWidth: width,
+      originalHeight: height,
+      cropBase64: null,
+      cropBlob: null
+    };
 
     if (first) {
-      state.currentScan = { photos: [photo], cropped: null, result: null };
+      state.currentScan = { photos: [photo], result: null };
     } else {
       if (state.currentScan.photos.length >= 3) {
         toast('Max 3 photos. Remove one first.', { error: true });
         return;
       }
-      // Commit the current photo's crop before moving on so earlier shots
-      // aren't discarded when a new one is added.
+      // Freeze the previous photo's crop before moving on, otherwise
+      // earlier shots would be sent uncropped.
       await commitCurrentCrop();
       state.currentScan.photos.push(photo);
     }
@@ -96,12 +106,8 @@ async function commitCurrentCrop() {
     const photos = state.currentScan.photos;
     const i = photos.length - 1;
     if (i >= 0) {
-      photos[i] = {
-        base64: cropped.base64,
-        blob: cropped.blob,
-        width: cropped.width,
-        height: cropped.height
-      };
+      photos[i].cropBase64 = cropped.base64;
+      photos[i].cropBlob = cropped.blob;
     }
   } catch (err) {
     console.warn('Could not commit crop:', err);
@@ -138,7 +144,7 @@ async function enterCrop() {
   renderPhotoStrip();
 
   destroyCropper();
-  state.cropper = initCropper(byId('cropCanvas'), active.base64);
+  state.cropper = initCropper(byId('cropCanvas'), active.originalBase64);
   await state.cropper.ready;
 }
 
@@ -147,7 +153,7 @@ function renderPhotoStrip() {
   strip.innerHTML = '';
   state.currentScan.photos.forEach((p, i) => {
     const img = document.createElement('img');
-    img.src = `data:image/jpeg;base64,${p.base64}`;
+    img.src = `data:image/jpeg;base64,${p.originalBase64}`;
     if (i === state.currentScan.photos.length - 1) img.classList.add('active');
     strip.appendChild(img);
   });
@@ -164,21 +170,11 @@ async function runAnalysis() {
   const photos = state.currentScan.photos;
   if (photos.length === 0) return toast('Take a photo first.', { error: true });
 
-  let cropped;
-  try {
-    cropped = await state.cropper.getCrop();
-  } catch (err) {
-    return toast(err.message || 'Could not crop photo.', { error: true });
-  }
-
-  // Replace the last photo with its cropped version for archive display.
-  photos[photos.length - 1] = {
-    base64: cropped.base64,
-    blob: cropped.blob,
-    width: cropped.width,
-    height: cropped.height
-  };
+  await commitCurrentCrop();
   destroyCropper();
+
+  // Send the crop if one was committed, else fall back to the original.
+  const images = photos.map((p) => p.cropBase64 || p.originalBase64);
 
   show('analyzing');
   startTipRotation();
@@ -187,10 +183,7 @@ async function runAnalysis() {
     const response = await fetch('/api/scan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        images: photos.map((p) => p.base64),
-        language: 'en'
-      })
+      body: JSON.stringify({ images, language: 'en' })
     });
     const data = await response.json();
 
@@ -205,9 +198,9 @@ async function runAnalysis() {
     console.error('Analyze failed:', err);
     toast(err.message || 'Analysis failed.', { error: true });
     show('crop');
-    // Rebuild cropper on the last photo so user can retry.
+    // Rebuild the cropper so the user can retry without losing the photo.
     const active = photos[photos.length - 1];
-    state.cropper = initCropper(byId('cropCanvas'), active.base64);
+    state.cropper = initCropper(byId('cropCanvas'), active.originalBase64);
   }
 }
 
@@ -233,7 +226,7 @@ function wireResult() {
   byId('saveBtn').addEventListener('click', saveCurrent);
   byId('shareBtn').addEventListener('click', shareCurrent);
   byId('rescanBtn').addEventListener('click', () => {
-    state.currentScan = { photos: [], cropped: null, result: null };
+    state.currentScan = { photos: [], result: null };
     show('scan');
   });
 }
@@ -241,7 +234,7 @@ function wireResult() {
 function showResult() {
   stopTipRotation();
   const { photos, result } = state.currentScan;
-  renderScorecard(result, photos[0]?.blob, byId('resultMount'));
+  renderScorecard(result, photos[0]?.originalBlob, byId('resultMount'));
   show('result');
 }
 
@@ -249,10 +242,12 @@ async function saveCurrent() {
   const { photos, result } = state.currentScan;
   if (!result) return;
   try {
+    // Persist the originals. The thumbnail is always the first photo's
+    // full (uncropped) shot so the archive card shows the whole product.
     const record = {
       timestamp: Date.now(),
-      photos: photos.map((p) => p.blob),
-      thumbnail: photos[0]?.blob || null,
+      photos: photos.map((p) => p.originalBlob),
+      thumbnail: photos[0]?.originalBlob || null,
       result,
       userNote: ''
     };
@@ -270,8 +265,8 @@ async function shareCurrent() {
   if (!result) return;
   try {
     await exportCard({
-      photos: photos.map((p) => p.blob),
-      thumbnail: photos[0]?.blob,
+      photos: photos.map((p) => p.originalBlob),
+      thumbnail: photos[0]?.originalBlob,
       result
     });
   } catch (err) {
