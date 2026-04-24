@@ -1,0 +1,26 @@
+# Netlify deploy config. Vercel deploys ignore this file.
+#
+# Required env var on Netlify (Site settings → Environment variables):
+#   GEMINI_API_KEY
+# Optional:
+#   PUBLIC_APP_URL   — sent as Referer to Gemini (e.g. https://foolab.netlify.app)
+#
+# Note: sync Netlify Functions on the Free plan have a 10-second timeout.
+# A Gemini vision call on three large photos can occasionally exceed that.
+# If you see sporadic 502s, either shrink MAX_IMAGES in lib/scan-core.js or
+# upgrade the plan.
+
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[functions]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
