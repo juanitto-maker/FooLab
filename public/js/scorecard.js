@@ -1,6 +1,11 @@
 // Render a scan result card into a container element.
 // Buttons (save / share / rescan / delete) live in index.html and are wired by app.js.
 
+import {
+  loadEnumbersDB, lookupAdditive,
+  computeAdditiveRating, getConditionWarnings, frequencyGuidance
+} from './additives.js';
+
 const RED_FLAG_LABELS = {
   palmOil: 'Palm oil',
   transFat: 'Trans fat',
@@ -63,6 +68,33 @@ export function renderScorecard(result, photoBlob, container) {
   `;
   card.appendChild(scoreLine);
 
+  // Additive traffic light — derived client-side from eNumbers + flags
+  const rating = computeAdditiveRating(result);
+  if (rating) card.appendChild(renderAdditiveRating(rating));
+
+  // Condition-agnostic warnings — diabetes, hypertension, allergies, PKU, etc.
+  const warnings = getConditionWarnings(result);
+  if (warnings.length > 0) {
+    card.appendChild(sectionTitle('Heads-up for'));
+    const chips = el('div', 'condition-chips');
+    for (const w of warnings) {
+      const chip = el('span', `condition-chip sev-${w.severity || 'medium'}`);
+      chip.textContent = w.label;
+      if (w.reason) chip.title = w.reason;
+      chips.appendChild(chip);
+    }
+    card.appendChild(chips);
+
+    const details = el('div', 'condition-details');
+    for (const w of warnings) {
+      if (!w.reason) continue;
+      const p = el('p', 'condition-line');
+      p.textContent = `• ${w.label} — ${w.reason}`;
+      details.appendChild(p);
+    }
+    card.appendChild(details);
+  }
+
   if (Array.isArray(result.redFlags) && result.redFlags.length > 0) {
     card.appendChild(sectionTitle('Red flags'));
     const chips = el('div', 'chips');
@@ -90,26 +122,10 @@ export function renderScorecard(result, photoBlob, container) {
   }
 
   if (Array.isArray(result.eNumbers) && result.eNumbers.length > 0) {
-    card.appendChild(sectionTitle('E-numbers'));
+    card.appendChild(sectionTitle('E-numbers / additives'));
     const list = el('ul', 'enumbers');
     for (const e of result.eNumbers) {
-      const li = el('li');
-      const head = el('div', 'enumber-head');
-      const name = el('span');
-      name.textContent = `${e.code} — ${e.name}`;
-      const concern = el('span', `enumber-concern ${e.concern || 'low'}`);
-      concern.textContent = e.concern || 'low';
-      head.appendChild(name);
-      head.appendChild(concern);
-      li.appendChild(head);
-      if (e.note) {
-        const note = el('p', 'enumber-note');
-        note.textContent = e.note;
-        note.hidden = true;
-        li.appendChild(note);
-        head.addEventListener('click', () => { note.hidden = !note.hidden; });
-      }
-      list.appendChild(li);
+      list.appendChild(renderEnumberItem(e));
     }
     card.appendChild(list);
   }
@@ -159,6 +175,199 @@ export function renderScorecard(result, photoBlob, container) {
   card.appendChild(conf);
 
   container.appendChild(card);
+
+  // Async enrichment — upgrade rating + condition chips + E-number detail
+  // once the static DB has loaded. We render immediately with what the AI
+  // returned; the reference data adds the "read more" health context.
+  loadEnumbersDB().then((db) => enrich(container, result, db)).catch(() => {});
+}
+
+function renderAdditiveRating(rating) {
+  const wrap = el('div', `additive-rating rating-${rating.level}`);
+  const dot = el('span', 'additive-dot');
+  const text = el('div', 'additive-text');
+  const title = el('div', 'additive-title');
+  title.textContent = rating.label;
+  const detail = el('div', 'additive-detail');
+  detail.textContent = rating.detail;
+  text.appendChild(title);
+  text.appendChild(detail);
+  wrap.appendChild(dot);
+  wrap.appendChild(text);
+  return wrap;
+}
+
+function renderEnumberItem(e, dbEntry = null) {
+  const li = el('li');
+  li.dataset.code = (e.code || '').toUpperCase();
+
+  const head = el('div', 'enumber-head');
+  const name = el('span');
+  name.textContent = `${e.code} — ${e.name}`;
+  const concern = el('span', `enumber-concern ${e.concern || 'low'}`);
+  concern.textContent = e.concern || 'low';
+  head.appendChild(name);
+  head.appendChild(concern);
+  li.appendChild(head);
+
+  const panel = el('div', 'enumber-panel');
+  panel.hidden = true;
+
+  if (e.note) {
+    const note = el('p', 'enumber-note');
+    note.textContent = e.note;
+    panel.appendChild(note);
+  }
+
+  if (dbEntry) {
+    panel.appendChild(renderDbDetail(dbEntry, e.concern));
+  }
+
+  li.appendChild(panel);
+
+  head.addEventListener('click', () => { panel.hidden = !panel.hidden; });
+
+  return li;
+}
+
+function renderDbDetail(ref, aiConcern) {
+  const wrap = el('div', 'enumber-detail');
+
+  if (ref.what) {
+    wrap.appendChild(detailRow('About', ref.what));
+  }
+  if (ref.smallDose) {
+    wrap.appendChild(detailRow('Small amounts', ref.smallDose));
+  }
+  if (ref.largeDose) {
+    wrap.appendChild(detailRow('Daily / heavy use', ref.largeDose));
+  }
+
+  const guide = frequencyGuidance(ref.concern || aiConcern);
+  if (guide) wrap.appendChild(detailRow('Consumption', guide));
+
+  if (Array.isArray(ref.conditions) && ref.conditions.length > 0) {
+    const lbl = el('div', 'enumber-detail-label');
+    lbl.textContent = 'Relevant for';
+    wrap.appendChild(lbl);
+    const chips = el('div', 'condition-chips');
+    for (const cond of ref.conditions) {
+      const chip = el('span', 'condition-chip sev-medium');
+      chip.textContent = humanizeCondition(cond);
+      chips.appendChild(chip);
+    }
+    wrap.appendChild(chips);
+  }
+
+  return wrap;
+}
+
+function detailRow(label, text) {
+  const row = el('div', 'enumber-detail-row');
+  const lbl = el('div', 'enumber-detail-label');
+  lbl.textContent = label;
+  const val = el('p', 'enumber-detail-text');
+  val.textContent = text;
+  row.appendChild(lbl);
+  row.appendChild(val);
+  return row;
+}
+
+function humanizeCondition(key) {
+  const map = {
+    diabetes: 'Diabetes',
+    hypertension: 'Hypertension',
+    hypotension: 'Low blood pressure',
+    pku: 'PKU',
+    sulfite_sensitivity: 'Sulfite sensitivity',
+    adhd_children: 'ADHD-sensitive children',
+    kidney: 'Kidney disease',
+    thyroid: 'Thyroid',
+    ibs: 'IBS / sensitive gut',
+    migraine: 'Migraine-prone'
+  };
+  return map[key] || key;
+}
+
+function enrich(container, result, db) {
+  if (!db) return;
+
+  // Re-render the additive rating with DB-informed concerns mixed in.
+  const rating = computeAdditiveRating(result, db);
+  const existingRating = container.querySelector('.additive-rating');
+  if (rating && existingRating) {
+    const fresh = renderAdditiveRating(rating);
+    existingRating.replaceWith(fresh);
+  }
+
+  // Merge DB condition tags into the warnings section.
+  const fullWarnings = getConditionWarnings(result, db);
+  const warningsTitle = [...container.querySelectorAll('.section-title')]
+    .find((n) => n.textContent === 'Heads-up for');
+  if (fullWarnings.length > 0) {
+    if (warningsTitle) {
+      const chipsEl = warningsTitle.nextElementSibling;
+      const detailsEl = chipsEl?.nextElementSibling;
+      if (chipsEl && chipsEl.classList.contains('condition-chips')) {
+        chipsEl.innerHTML = '';
+        for (const w of fullWarnings) {
+          const chip = el('span', `condition-chip sev-${w.severity || 'medium'}`);
+          chip.textContent = w.label;
+          if (w.reason) chip.title = w.reason;
+          chipsEl.appendChild(chip);
+        }
+      }
+      if (detailsEl && detailsEl.classList.contains('condition-details')) {
+        detailsEl.innerHTML = '';
+        for (const w of fullWarnings) {
+          if (!w.reason) continue;
+          const p = el('p', 'condition-line');
+          p.textContent = `• ${w.label} — ${w.reason}`;
+          detailsEl.appendChild(p);
+        }
+      }
+    } else {
+      // Condition section wasn't rendered initially — DB surfaced new tags.
+      // Inject it right before the Red flags title, or at the end if none.
+      const title = sectionTitle('Heads-up for');
+      const chipsEl = el('div', 'condition-chips');
+      const detailsEl = el('div', 'condition-details');
+      for (const w of fullWarnings) {
+        const chip = el('span', `condition-chip sev-${w.severity || 'medium'}`);
+        chip.textContent = w.label;
+        if (w.reason) chip.title = w.reason;
+        chipsEl.appendChild(chip);
+        if (w.reason) {
+          const p = el('p', 'condition-line');
+          p.textContent = `• ${w.label} — ${w.reason}`;
+          detailsEl.appendChild(p);
+        }
+      }
+      const scorecard = container.querySelector('.scorecard');
+      const anchor = [...scorecard.querySelectorAll('.section-title')]
+        .find((n) => n.textContent === 'Red flags' || n.textContent === 'E-numbers / additives');
+      if (anchor) {
+        scorecard.insertBefore(title, anchor);
+        scorecard.insertBefore(chipsEl, anchor);
+        scorecard.insertBefore(detailsEl, anchor);
+      } else {
+        scorecard.appendChild(title);
+        scorecard.appendChild(chipsEl);
+        scorecard.appendChild(detailsEl);
+      }
+    }
+  }
+
+  // Inject "read more" detail into each E-number list item.
+  for (const li of container.querySelectorAll('.enumbers li')) {
+    const code = li.dataset.code;
+    const ref = lookupAdditive(db, code);
+    if (!ref) continue;
+    const panel = li.querySelector('.enumber-panel');
+    if (!panel || panel.querySelector('.enumber-detail')) continue;
+    const aiConcern = li.querySelector('.enumber-concern')?.textContent;
+    panel.appendChild(renderDbDetail(ref, aiConcern));
+  }
 }
 
 function renderUnreadable(result) {
