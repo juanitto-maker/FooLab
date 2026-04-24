@@ -1,0 +1,599 @@
+{
+  "version": 1,
+  "updated": "2026-04-24",
+  "notes": "Curated reference for FooLab's 'read more' E-number details. Concern levels follow the same low/medium/high rubric used elsewhere in the app. Not medical advice.",
+  "conditions": {
+    "diabetes": "People with diabetes",
+    "hypertension": "People with high blood pressure",
+    "hypotension": "People with low blood pressure",
+    "pku": "People with phenylketonuria (PKU)",
+    "sulfite_sensitivity": "People with asthma or sulfite sensitivity",
+    "adhd_children": "Children sensitive to food colorings",
+    "kidney": "People with kidney disease",
+    "thyroid": "People with thyroid conditions",
+    "ibs": "People with IBS or gut sensitivity",
+    "migraine": "People prone to migraines"
+  },
+  "additives": [
+    {
+      "code": "E100",
+      "name": "Curcumin",
+      "category": "color",
+      "concern": "low",
+      "what": "Yellow-orange color extracted from turmeric root. A natural, plant-derived pigment.",
+      "smallDose": "Considered safe at the levels used in food. Widely consumed as turmeric in cooking.",
+      "largeDose": "No significant concerns at typical daily intakes. Very high concentrated supplements (grams per day) can irritate the gut.",
+      "conditions": []
+    },
+    {
+      "code": "E102",
+      "name": "Tartrazine",
+      "category": "color",
+      "concern": "high",
+      "what": "Synthetic yellow azo dye. One of the 'Southampton six' colorings linked to hyperactivity in susceptible children.",
+      "smallDose": "EFSA keeps it approved but EU law requires a warning label on foods that contain it.",
+      "largeDose": "Regular consumption may trigger hyperactivity in sensitive children and allergic-type reactions (hives, asthma) in a small fraction of adults.",
+      "conditions": ["adhd_children"]
+    },
+    {
+      "code": "E104",
+      "name": "Quinoline Yellow",
+      "category": "color",
+      "concern": "high",
+      "what": "Synthetic yellow dye. Banned in the US; one of the Southampton six.",
+      "smallDose": "Tolerated by most, but EU mandates a hyperactivity warning on labels.",
+      "largeDose": "Frequent consumption associated with attention and behaviour changes in sensitive children.",
+      "conditions": ["adhd_children"]
+    },
+    {
+      "code": "E110",
+      "name": "Sunset Yellow FCF",
+      "category": "color",
+      "concern": "high",
+      "what": "Synthetic orange-yellow azo dye. One of the Southampton six.",
+      "smallDose": "Low intake tolerated by most adults.",
+      "largeDose": "Linked to hyperactivity in sensitive children; some people report hives or stomach upset.",
+      "conditions": ["adhd_children"]
+    },
+    {
+      "code": "E120",
+      "name": "Cochineal / Carminic acid",
+      "category": "color",
+      "concern": "medium",
+      "what": "Deep red color derived from dried cochineal insects.",
+      "smallDose": "Not vegetarian/vegan. Generally safe in typical food amounts.",
+      "largeDose": "Can trigger allergic reactions, including rare but serious anaphylaxis, in susceptible people.",
+      "conditions": []
+    },
+    {
+      "code": "E122",
+      "name": "Azorubine / Carmoisine",
+      "category": "color",
+      "concern": "high",
+      "what": "Synthetic red azo dye. Southampton six member.",
+      "smallDose": "Occasional intake generally tolerated.",
+      "largeDose": "Linked to hyperactivity in sensitive children and intolerance reactions in some adults.",
+      "conditions": ["adhd_children"]
+    },
+    {
+      "code": "E124",
+      "name": "Ponceau 4R",
+      "category": "color",
+      "concern": "high",
+      "what": "Synthetic red azo dye. Banned in the US. Southampton six.",
+      "smallDose": "Tolerated by most at low intakes.",
+      "largeDose": "Hyperactivity risk in sensitive children; rare allergic-type reactions.",
+      "conditions": ["adhd_children"]
+    },
+    {
+      "code": "E129",
+      "name": "Allura Red AC",
+      "category": "color",
+      "concern": "high",
+      "what": "Synthetic red azo dye. Southampton six.",
+      "smallDose": "Occasional intake generally tolerated.",
+      "largeDose": "Long-term frequent intake linked in recent studies to gut inflammation in animal models and behaviour effects in sensitive children.",
+      "conditions": ["adhd_children", "ibs"]
+    },
+    {
+      "code": "E140",
+      "name": "Chlorophyll",
+      "category": "color",
+      "concern": "low",
+      "what": "Green pigment extracted from plants. Same compound that makes leaves green.",
+      "smallDose": "Considered safe.",
+      "largeDose": "No significant concerns at food-level intakes.",
+      "conditions": []
+    },
+    {
+      "code": "E150a",
+      "name": "Plain caramel",
+      "category": "color",
+      "concern": "low",
+      "what": "Brown color made by heating sugars. The simplest caramel, no ammonia/sulfite process.",
+      "smallDose": "Considered safe.",
+      "largeDose": "Little concern beyond the sugar content.",
+      "conditions": []
+    },
+    {
+      "code": "E150d",
+      "name": "Sulfite ammonia caramel",
+      "category": "color",
+      "concern": "medium",
+      "what": "Darkest caramel color, made with ammonia and sulfites. Common in colas and soy-style sauces.",
+      "smallDose": "EFSA sets a daily limit. Occasional soda intake fits well within it.",
+      "largeDose": "Contains trace 4-MEI, classified as 'possibly carcinogenic' by IARC. Heavy daily cola drinkers can approach intake of concern.",
+      "conditions": []
+    },
+    {
+      "code": "E160a",
+      "name": "Beta-carotene",
+      "category": "color",
+      "concern": "low",
+      "what": "Orange pigment naturally found in carrots, also a vitamin A precursor.",
+      "smallDose": "Safe and nutritionally useful.",
+      "largeDose": "Very high doses from supplements (not food additives) have been linked to lung cancer risk in smokers.",
+      "conditions": []
+    },
+    {
+      "code": "E160c",
+      "name": "Paprika extract",
+      "category": "color",
+      "concern": "low",
+      "what": "Red-orange color from paprika peppers.",
+      "smallDose": "Considered safe.",
+      "largeDose": "No notable concern at food-level intakes.",
+      "conditions": []
+    },
+    {
+      "code": "E162",
+      "name": "Beetroot red (betanin)",
+      "category": "color",
+      "concern": "low",
+      "what": "Deep pink-red pigment from beetroot.",
+      "smallDose": "Safe. Can harmlessly turn urine pink.",
+      "largeDose": "No significant concerns.",
+      "conditions": []
+    },
+    {
+      "code": "E163",
+      "name": "Anthocyanins",
+      "category": "color",
+      "concern": "low",
+      "what": "Purple-red pigments from grapes, berries, red cabbage.",
+      "smallDose": "Safe; also antioxidant.",
+      "largeDose": "No notable concern at food-level intakes.",
+      "conditions": []
+    },
+    {
+      "code": "E171",
+      "name": "Titanium dioxide",
+      "category": "color",
+      "concern": "high",
+      "what": "Bright white pigment. Banned as a food additive in the EU (2022) over concerns it may damage DNA.",
+      "smallDose": "Still allowed in some non-EU markets. EFSA could no longer consider it safe after recent nanoparticle data.",
+      "largeDose": "Repeated ingestion may accumulate in the gut. Avoid if possible.",
+      "conditions": ["ibs"]
+    },
+    {
+      "code": "E172",
+      "name": "Iron oxides",
+      "category": "color",
+      "concern": "low",
+      "what": "Black, red, or yellow mineral pigments.",
+      "smallDose": "Considered safe.",
+      "largeDose": "Typical food use provides negligible iron relative to dietary needs.",
+      "conditions": []
+    },
+    {
+      "code": "E200",
+      "name": "Sorbic acid",
+      "category": "preservative",
+      "concern": "low",
+      "what": "A preservative that stops mold and yeast growth.",
+      "smallDose": "Considered safe; metabolised like fatty acids.",
+      "largeDose": "Some people report skin rash on direct contact, but dietary intake is generally well tolerated.",
+      "conditions": []
+    },
+    {
+      "code": "E202",
+      "name": "Potassium sorbate",
+      "category": "preservative",
+      "concern": "low",
+      "what": "Potassium salt of sorbic acid. Most common mold/yeast inhibitor.",
+      "smallDose": "Widely considered one of the safer preservatives.",
+      "largeDose": "Occasionally implicated in mild skin or respiratory reactions at high exposures.",
+      "conditions": []
+    },
+    {
+      "code": "E210",
+      "name": "Benzoic acid",
+      "category": "preservative",
+      "concern": "medium",
+      "what": "Preservative active against yeasts and bacteria.",
+      "smallDose": "Approved but may cause pseudo-allergic reactions in some asthmatics or people with urticaria.",
+      "largeDose": "In acidic drinks containing vitamin C (E300), can form traces of benzene — manufacturers generally avoid this combination now.",
+      "conditions": ["sulfite_sensitivity"]
+    },
+    {
+      "code": "E211",
+      "name": "Sodium benzoate",
+      "category": "preservative",
+      "concern": "medium",
+      "what": "Sodium salt of benzoic acid. Common in soft drinks, sauces, pickles.",
+      "smallDose": "Approved; daily limits easily met at normal intakes.",
+      "largeDose": "Can react with vitamin C to form traces of benzene. Associated with hyperactivity in sensitive children when combined with artificial colors.",
+      "conditions": ["adhd_children", "sulfite_sensitivity"]
+    },
+    {
+      "code": "E220",
+      "name": "Sulfur dioxide",
+      "category": "preservative",
+      "concern": "medium",
+      "what": "A gas-based preservative used in wine, dried fruit, fruit juice.",
+      "smallDose": "Labelled as an allergen in the EU above 10 mg/kg.",
+      "largeDose": "Can trigger asthma attacks in sulfite-sensitive people; destroys thiamin (vitamin B1).",
+      "conditions": ["sulfite_sensitivity"]
+    },
+    {
+      "code": "E223",
+      "name": "Sodium metabisulfite",
+      "category": "preservative",
+      "concern": "medium",
+      "what": "Sulfite-releasing preservative common in wines, dried fruits, shellfish.",
+      "smallDose": "Required to be disclosed as an allergen in the EU.",
+      "largeDose": "A known trigger for asthma attacks in sulfite-sensitive people.",
+      "conditions": ["sulfite_sensitivity"]
+    },
+    {
+      "code": "E249",
+      "name": "Potassium nitrite",
+      "category": "preservative",
+      "concern": "high",
+      "what": "Preservative and color fixative for cured meats. Prevents botulism.",
+      "smallDose": "Occasional intake unlikely to cause harm for most adults.",
+      "largeDose": "Can form N-nitroso compounds during cooking, classified by IARC as 'probably carcinogenic'. WHO links processed meats to colorectal cancer.",
+      "conditions": []
+    },
+    {
+      "code": "E250",
+      "name": "Sodium nitrite",
+      "category": "preservative",
+      "concern": "high",
+      "what": "Used in bacon, ham, hot dogs to prevent botulism and keep the pink color.",
+      "smallDose": "Occasional consumption fits EU limits.",
+      "largeDose": "Processed meats cured with nitrites are Group 1 carcinogens (IARC). Regular daily consumption is linked to colorectal cancer.",
+      "conditions": []
+    },
+    {
+      "code": "E251",
+      "name": "Sodium nitrate",
+      "category": "preservative",
+      "concern": "high",
+      "what": "Converts to nitrite in the body; used in cured meats.",
+      "smallDose": "Permitted within strict limits.",
+      "largeDose": "Shares the nitrosamine and colorectal-cancer concerns of nitrites.",
+      "conditions": []
+    },
+    {
+      "code": "E252",
+      "name": "Potassium nitrate",
+      "category": "preservative",
+      "concern": "high",
+      "what": "Curing salt used in charcuterie.",
+      "smallDose": "Permitted within strict limits.",
+      "largeDose": "Same nitrosamine-forming concerns as E251.",
+      "conditions": []
+    },
+    {
+      "code": "E270",
+      "name": "Lactic acid",
+      "category": "acidity_regulator",
+      "concern": "low",
+      "what": "Natural acid produced in fermentation; present in yogurt and sourdough.",
+      "smallDose": "Safe.",
+      "largeDose": "No significant concerns.",
+      "conditions": []
+    },
+    {
+      "code": "E280",
+      "name": "Propionic acid",
+      "category": "preservative",
+      "concern": "low",
+      "what": "Mold inhibitor used in breads and baked goods.",
+      "smallDose": "Generally well tolerated.",
+      "largeDose": "Some animal studies suggest effects on insulin signalling at high intakes; EFSA's review concluded it's safe at current use levels.",
+      "conditions": []
+    },
+    {
+      "code": "E300",
+      "name": "Ascorbic acid (vitamin C)",
+      "category": "antioxidant",
+      "concern": "low",
+      "what": "Vitamin C, added as antioxidant to prevent browning and extend shelf life.",
+      "smallDose": "Safe and nutritionally useful.",
+      "largeDose": "Doses above a few grams per day can cause diarrhea. In drinks containing benzoate (E211), can form traces of benzene.",
+      "conditions": []
+    },
+    {
+      "code": "E306",
+      "name": "Tocopherols (vitamin E)",
+      "category": "antioxidant",
+      "concern": "low",
+      "what": "Natural vitamin E extract; antioxidant that stops fats going rancid.",
+      "smallDose": "Safe and nutritionally useful.",
+      "largeDose": "No significant concerns at food-additive levels.",
+      "conditions": []
+    },
+    {
+      "code": "E320",
+      "name": "BHA (butylated hydroxyanisole)",
+      "category": "antioxidant",
+      "concern": "medium",
+      "what": "Synthetic antioxidant for fats and oils.",
+      "smallDose": "Approved within EU limits.",
+      "largeDose": "Classified by IARC as 'possibly carcinogenic' based on animal studies. Replaced by tocopherols in many products.",
+      "conditions": []
+    },
+    {
+      "code": "E321",
+      "name": "BHT (butylated hydroxytoluene)",
+      "category": "antioxidant",
+      "concern": "medium",
+      "what": "Synthetic antioxidant similar to BHA.",
+      "smallDose": "Approved within EU limits.",
+      "largeDose": "Animal data show endocrine and tumor effects at high doses; long-term human evidence is limited.",
+      "conditions": []
+    },
+    {
+      "code": "E322",
+      "name": "Lecithins",
+      "category": "emulsifier",
+      "concern": "low",
+      "what": "Emulsifier extracted from soy, sunflower, or egg. Helps mix fat and water.",
+      "smallDose": "Safe. Soy lecithin may carry traces of soy protein relevant to severe soy allergy.",
+      "largeDose": "No significant concerns.",
+      "conditions": []
+    },
+    {
+      "code": "E330",
+      "name": "Citric acid",
+      "category": "acidity_regulator",
+      "concern": "low",
+      "what": "Naturally present in citrus fruit; industrially made by fermenting sugar with Aspergillus niger.",
+      "smallDose": "Safe.",
+      "largeDose": "Can erode tooth enamel in frequent acidic-drink consumers.",
+      "conditions": []
+    },
+    {
+      "code": "E338",
+      "name": "Phosphoric acid",
+      "category": "acidity_regulator",
+      "concern": "medium",
+      "what": "Gives colas their sharp tang.",
+      "smallDose": "Occasional intake fine for most adults.",
+      "largeDose": "Heavy cola intake is linked to lower bone density and kidney-function decline. People with chronic kidney disease should limit phosphate intake.",
+      "conditions": ["kidney"]
+    },
+    {
+      "code": "E407",
+      "name": "Carrageenan",
+      "category": "thickener",
+      "concern": "medium",
+      "what": "Seaweed-derived thickener used in dairy, plant milks, processed meats.",
+      "smallDose": "Food-grade carrageenan is approved by EFSA.",
+      "largeDose": "Some people with IBS or inflammatory bowel disease report symptoms with regular intake; evidence is mixed but many sensitive guts avoid it.",
+      "conditions": ["ibs"]
+    },
+    {
+      "code": "E410",
+      "name": "Locust bean gum",
+      "category": "thickener",
+      "concern": "low",
+      "what": "Natural thickener from carob tree seeds.",
+      "smallDose": "Safe.",
+      "largeDose": "Large amounts of any gum can cause bloating or loose stools.",
+      "conditions": []
+    },
+    {
+      "code": "E412",
+      "name": "Guar gum",
+      "category": "thickener",
+      "concern": "low",
+      "what": "Soluble fiber thickener from guar beans.",
+      "smallDose": "Safe; may slightly improve satiety.",
+      "largeDose": "At large amounts can cause gas or bloating.",
+      "conditions": ["ibs"]
+    },
+    {
+      "code": "E415",
+      "name": "Xanthan gum",
+      "category": "thickener",
+      "concern": "low",
+      "what": "Fermentation-derived thickener; common in gluten-free baking.",
+      "smallDose": "Safe for adults.",
+      "largeDose": "Avoid in infant food — linked to serious gut complications in newborns.",
+      "conditions": ["ibs"]
+    },
+    {
+      "code": "E420",
+      "name": "Sorbitol",
+      "category": "sweetener",
+      "concern": "low",
+      "what": "Sugar alcohol sweetener; about 60% the sweetness of sugar.",
+      "smallDose": "Does not spike blood sugar; tooth-friendly.",
+      "largeDose": "Above ~20 g/day can cause diarrhea and bloating. Warning label required in the EU.",
+      "conditions": ["ibs", "diabetes"]
+    },
+    {
+      "code": "E440",
+      "name": "Pectin",
+      "category": "thickener",
+      "concern": "low",
+      "what": "Natural fruit fiber used to set jams and jellies.",
+      "smallDose": "Safe; contributes soluble fiber.",
+      "largeDose": "Very large amounts can cause bloating.",
+      "conditions": []
+    },
+    {
+      "code": "E450",
+      "name": "Diphosphates",
+      "category": "stabilizer",
+      "concern": "medium",
+      "what": "Phosphate salts used as leavening agents and in processed meats.",
+      "smallDose": "Within limits for healthy adults.",
+      "largeDose": "Added phosphates are absorbed much more efficiently than natural phosphorus. People with kidney disease should minimise them.",
+      "conditions": ["kidney"]
+    },
+    {
+      "code": "E460",
+      "name": "Cellulose",
+      "category": "thickener",
+      "concern": "low",
+      "what": "Plant fiber, often added as an anti-caking or bulking agent.",
+      "smallDose": "Safe; passes through as insoluble fiber.",
+      "largeDose": "No significant concerns.",
+      "conditions": []
+    },
+    {
+      "code": "E471",
+      "name": "Mono- and diglycerides of fatty acids",
+      "category": "emulsifier",
+      "concern": "medium",
+      "what": "Very common emulsifier in baked goods, ice cream, margarine.",
+      "smallDose": "Approved; source fat can be animal or plant.",
+      "largeDose": "Emerging research suggests frequent emulsifier intake may affect the gut microbiome. Evidence is preliminary.",
+      "conditions": ["ibs"]
+    },
+    {
+      "code": "E472e",
+      "name": "DATEM (mono/diglycerides esters)",
+      "category": "emulsifier",
+      "concern": "medium",
+      "what": "Dough conditioner widely used in industrial bread.",
+      "smallDose": "Approved at normal use levels.",
+      "largeDose": "Same emulsifier/microbiome caveat as E471.",
+      "conditions": ["ibs"]
+    },
+    {
+      "code": "E500",
+      "name": "Sodium carbonates",
+      "category": "acidity_regulator",
+      "concern": "low",
+      "what": "Baking soda and washing soda; leavening and acidity control.",
+      "smallDose": "Safe at food-additive levels.",
+      "largeDose": "Contributes to dietary sodium — relevant for blood pressure.",
+      "conditions": ["hypertension"]
+    },
+    {
+      "code": "E621",
+      "name": "Monosodium glutamate (MSG)",
+      "category": "flavour_enhancer",
+      "concern": "low",
+      "what": "Sodium salt of glutamic acid; produces umami (savory) taste.",
+      "smallDose": "EFSA considers it safe; classic 'Chinese restaurant syndrome' reports have not held up in controlled trials for most people.",
+      "largeDose": "Adds meaningful sodium; a minority report headache or flushing at high intakes.",
+      "conditions": ["hypertension", "migraine"]
+    },
+    {
+      "code": "E627",
+      "name": "Disodium guanylate",
+      "category": "flavour_enhancer",
+      "concern": "low",
+      "what": "Umami enhancer, usually paired with MSG.",
+      "smallDose": "Safe.",
+      "largeDose": "Should be avoided by people with gout — metabolises to purines.",
+      "conditions": []
+    },
+    {
+      "code": "E631",
+      "name": "Disodium inosinate",
+      "category": "flavour_enhancer",
+      "concern": "low",
+      "what": "Flavour enhancer often from fish or meat; used with MSG.",
+      "smallDose": "Safe.",
+      "largeDose": "People with gout should limit purine-producing additives.",
+      "conditions": []
+    },
+    {
+      "code": "E950",
+      "name": "Acesulfame K",
+      "category": "sweetener",
+      "concern": "medium",
+      "what": "Zero-calorie artificial sweetener, 200× sweeter than sugar.",
+      "smallDose": "EFSA considers it safe at the accepted daily intake.",
+      "largeDose": "Recent observational studies have linked high intakes of several non-nutritive sweeteners to a modest increase in cardiovascular events; evidence is evolving.",
+      "conditions": []
+    },
+    {
+      "code": "E951",
+      "name": "Aspartame",
+      "category": "sweetener",
+      "concern": "high",
+      "what": "Low-calorie sweetener made of two amino acids. Must be declared for people with PKU.",
+      "smallDose": "EFSA keeps it within ADI. IARC (2023) classified it as 'possibly carcinogenic to humans' (Group 2B) — lowest risk category.",
+      "largeDose": "People with PKU must avoid it entirely (contains phenylalanine). Heavy daily diet-soda drinkers exceed the cautious intake in some studies.",
+      "conditions": ["pku"]
+    },
+    {
+      "code": "E952",
+      "name": "Cyclamate",
+      "category": "sweetener",
+      "concern": "medium",
+      "what": "Artificial sweetener, banned in the US since 1970; still permitted in the EU.",
+      "smallDose": "EFSA's ADI is considered conservative.",
+      "largeDose": "Older bladder-cancer animal data remains debated. Heavy daily intake is uncommon.",
+      "conditions": []
+    },
+    {
+      "code": "E954",
+      "name": "Saccharin",
+      "category": "sweetener",
+      "concern": "medium",
+      "what": "One of the oldest artificial sweeteners.",
+      "smallDose": "Approved; no confirmed human cancer link.",
+      "largeDose": "Animal bladder-cancer signals led to earlier concerns; no clear human evidence.",
+      "conditions": []
+    },
+    {
+      "code": "E955",
+      "name": "Sucralose",
+      "category": "sweetener",
+      "concern": "medium",
+      "what": "Chlorinated sucrose; 600× sweeter than sugar.",
+      "smallDose": "Approved. Does not spike blood sugar in most studies.",
+      "largeDose": "Recent research suggests it may subtly alter gut microbiota and insulin response with regular daily use.",
+      "conditions": []
+    },
+    {
+      "code": "E960",
+      "name": "Steviol glycosides (stevia)",
+      "category": "sweetener",
+      "concern": "low",
+      "what": "Sweetener from the stevia plant leaf.",
+      "smallDose": "Approved. Does not raise blood sugar. Generally considered the safest of non-sugar sweeteners.",
+      "largeDose": "Some people find a bitter aftertaste; no significant health concerns at current use.",
+      "conditions": []
+    },
+    {
+      "code": "E965",
+      "name": "Maltitol",
+      "category": "sweetener",
+      "concern": "low",
+      "what": "Sugar alcohol sweetener; about 90% the sweetness of sugar.",
+      "smallDose": "Lower glycemic impact than sugar.",
+      "largeDose": "Above ~20 g/day causes laxative effects. EU label warning required.",
+      "conditions": ["ibs", "diabetes"]
+    },
+    {
+      "code": "E968",
+      "name": "Erythritol",
+      "category": "sweetener",
+      "concern": "medium",
+      "what": "Sugar alcohol; zero-calorie, almost no glycemic impact.",
+      "smallDose": "Well tolerated at typical food levels.",
+      "largeDose": "A 2023 study linked high blood levels to increased cardiovascular events; causality is debated.",
+      "conditions": []
+    }
+  ]
+}

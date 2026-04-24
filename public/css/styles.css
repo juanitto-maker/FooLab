@@ -513,6 +513,96 @@ main {
 .enumber-concern.medium { background: var(--sev-medium); }
 .enumber-concern.high { background: var(--sev-high); }
 
+.enumber-panel { margin-top: 6px; }
+.enumber-panel[hidden] { display: none; }
+
+.enumber-detail {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
+.enumber-detail-row { margin-bottom: 8px; }
+.enumber-detail-row:last-child { margin-bottom: 0; }
+.enumber-detail-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--ink-3);
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.enumber-detail-text {
+  font-size: 14px;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Additive traffic light — additive load, separate from NutriScore nutrition grade */
+.additive-rating {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  margin: 14px 0;
+}
+.additive-rating .additive-dot {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  margin-top: 4px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.04);
+}
+.additive-rating.rating-green .additive-dot { background: #2e7d32; }
+.additive-rating.rating-yellow .additive-dot { background: #fdd835; }
+.additive-rating.rating-red .additive-dot { background: #c62828; }
+.additive-rating.rating-green { background: rgba(46,125,50,0.08); border-color: rgba(46,125,50,0.25); }
+.additive-rating.rating-yellow { background: rgba(253,216,53,0.14); border-color: rgba(251,192,45,0.4); }
+.additive-rating.rating-red { background: rgba(198,40,40,0.08); border-color: rgba(198,40,40,0.25); }
+.additive-title { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
+.additive-detail { font-size: 13px; color: var(--ink-2); line-height: 1.4; }
+
+/* Condition-specific warning chips */
+.condition-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.condition-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  color: var(--ink);
+}
+.condition-chip.sev-low {
+  border-color: rgba(251,192,45,0.55);
+  background: rgba(253,216,53,0.14);
+}
+.condition-chip.sev-medium {
+  border-color: rgba(245,124,0,0.45);
+  background: rgba(245,124,0,0.10);
+  color: #b35300;
+}
+.condition-chip.sev-high {
+  border-color: rgba(198,40,40,0.45);
+  background: rgba(198,40,40,0.08);
+  color: #9a1c1c;
+}
+.condition-details { margin-top: 8px; }
+.condition-line {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin: 3px 0;
+  line-height: 1.45;
+}
+
 .ingredients-list {
   font-size: 15px;
   line-height: 1.55;
