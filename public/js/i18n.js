@@ -80,7 +80,10 @@ export async function setLanguage(code) {
   currentLangCode = code;
   try { localStorage.setItem(STORAGE_KEY, code); } catch {}
   applyHtmlLang();
-  showOverlay();
+  // Overlay text reflects the chosen language ("Translating into Greek…")
+  // so the user knows what's happening when it takes a few seconds.
+  const lang = languages.find((l) => l.code === code);
+  showOverlay(lang ? lang.name : null);
   try {
     await loadTranslations(code);
   } finally {
@@ -119,16 +122,25 @@ async function loadTranslations(code) {
     return;
   }
 
+  // Chunk the source dictionary into smaller batches and translate them
+  // in parallel. One 156-key Gemini request often truncates or stalls;
+  // four ~40-key requests are noticeably faster and more reliable, and
+  // partial successes still get cached so a retry only fetches the
+  // batches that failed.
   try {
-    const translations = await fetchTranslations(lang.englishName || lang.name, sourceStrings);
-    if (translations) {
-      currentTranslations = mergeWithSource(translations);
+    const partial = (cached && cached.strings) ? Object.assign({}, cached.strings) : {};
+    const merged = await translateInBatches(lang.englishName || lang.name, sourceStrings, partial);
+
+    // Save whatever we managed to fetch (even partial). If every batch
+    // failed, partial is still { } and we fall back to source for display.
+    if (Object.keys(merged).length > 0) {
       try {
         localStorage.setItem(cacheKey, JSON.stringify({
           version: TRANSLATION_VERSION,
-          strings: translations
+          strings: merged
         }));
       } catch {}
+      currentTranslations = mergeWithSource(merged);
     } else {
       currentTranslations = sourceStrings;
     }
@@ -136,9 +148,57 @@ async function loadTranslations(code) {
     console.warn('Translation fetch failed:', err);
     currentTranslations = sourceStrings;
     if (/429|busy|overload|unavailable/i.test(err.message || '')) {
-      showOverloadToast();
+      // Defer the overload toast until after the overlay closes — they
+      // shouldn't visually stack.
+      setTimeout(() => showOverloadToast(), 80);
     }
   }
+}
+
+const BATCH_SIZE = 40;
+const PARALLEL_LIMIT = 3;
+const FETCH_TIMEOUT_MS = 22000;
+
+// Split sourceStrings into batches, translate them in parallel (capped),
+// and merge results into `seed`. Each batch failure is non-fatal; we
+// keep whatever succeeded so the next call only retries the gaps.
+async function translateInBatches(targetLanguage, source, seed) {
+  const merged = Object.assign({}, seed);
+  const allKeys = Object.keys(source).filter((k) => !merged[k]);
+  if (allKeys.length === 0) return merged;
+
+  const batches = [];
+  for (let i = 0; i < allKeys.length; i += BATCH_SIZE) {
+    const slice = allKeys.slice(i, i + BATCH_SIZE);
+    const obj = {};
+    for (const k of slice) obj[k] = source[k];
+    batches.push(obj);
+  }
+
+  // Pool: up to PARALLEL_LIMIT in flight at once.
+  let cursor = 0;
+  async function worker() {
+    while (cursor < batches.length) {
+      const idx = cursor++;
+      try {
+        const part = await fetchTranslations(targetLanguage, batches[idx]);
+        if (part) Object.assign(merged, part);
+      } catch (err) {
+        // Surface 429s so the caller can show a toast, but don't stop
+        // sibling batches.
+        if (/429|busy|overload|unavailable/i.test(err.message || '')) {
+          throw err;
+        }
+        console.warn('Batch translate failed (continuing):', err.message || err);
+      }
+    }
+  }
+  const workers = [];
+  for (let w = 0; w < Math.min(PARALLEL_LIMIT, batches.length); w++) {
+    workers.push(worker());
+  }
+  await Promise.all(workers);
+  return merged;
 }
 
 async function backfillMissingKeys(code, cachedStrings, cacheKey) {
@@ -172,11 +232,28 @@ async function backfillMissingKeys(code, cachedStrings, cacheKey) {
 }
 
 async function fetchTranslations(targetLanguage, strings) {
-  const response = await fetch('/api/translate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ targetLanguage, strings })
-  });
+  // Browser-side timeout — the Netlify/Vercel function can stall on a cold
+  // Gemini call and we don't want the overlay to feel infinite.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  let response;
+  try {
+    response = await fetch('/api/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetLanguage, strings }),
+      signal: controller.signal
+    });
+  } catch (err) {
+    if (err?.name === 'AbortError') {
+      const e = new Error('Translation timed out — try again.');
+      e.status = 504;
+      throw e;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const err = new Error(data?.error || 'Translation failed.');
@@ -325,7 +402,7 @@ function flagBg(countryCode, w) {
 
 // --- Translation overlay + overload toast --------------------------------
 
-function showOverlay() {
+function showOverlay(languageName) {
   let el = document.getElementById('translationOverlay');
   if (!el) {
     el = document.createElement('div');
@@ -338,7 +415,9 @@ function showOverlay() {
       '</div>';
     document.body.appendChild(el);
   }
-  el.querySelector('.translation-overlay-text').textContent = t('translating');
+  const base = t('translating');
+  el.querySelector('.translation-overlay-text').textContent =
+    languageName ? `${base} → ${languageName}` : base;
   el.classList.add('is-visible');
 }
 
