@@ -254,5 +254,7 @@ export const sourceStrings = {
   toastScanNotFound: 'Scan not found.',
   toastCouldNotLoadProduct: 'Could not load product.',
   toastSomethingWentWrong: 'Something went wrong. Please try again.',
-  toastTranslateOverloaded: 'Translation is busy right now — try another language or come back later.'
+  toastTranslateOverloaded: 'Translation is busy right now — try another language or come back later.',
+  toastTranslateTimeout: 'Translation took too long — your network may be slow. Try again.',
+  toastTranslateNotConfigured: 'Translation is not configured on this server (missing GEMINI_API_KEY).'
 };
