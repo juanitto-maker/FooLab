@@ -124,15 +124,21 @@ async function loadTranslations(code) {
 
   // Chunk the source dictionary into small batches and translate them
   // sequentially. One 156-key request can blow past Netlify Free's 10s
-  // function ceiling; four ~30-key requests each comfortably fit. Partial
-  // successes get cached so a retry only fetches the gaps. We keep this
-  // strictly sequential because parallel calls eat the per-minute Gemini
-  // quota and trigger the 429 cascade the user was hitting.
+  // function ceiling; four ~50-key requests each comfortably fit. Partial
+  // successes get cached so a retry only fetches the gaps. Sequential,
+  // because parallel calls eat the per-minute Gemini quota.
   const partial = (cached && cached.strings) ? Object.assign({}, cached.strings) : {};
+  const sourceCount = Object.keys(sourceStrings).length;
+  const startCount = Object.keys(partial).length;
+
   const { merged, error } = await translateInBatches(
     lang.englishName || lang.name,
     sourceStrings,
-    partial
+    partial,
+    (done, total) => {
+      // Live progress in the overlay so a 20s wait doesn't feel infinite.
+      updateOverlayProgress(lang.name, done, total);
+    }
   );
 
   // Save whatever we managed (even partial). On the next switch the
@@ -149,27 +155,61 @@ async function loadTranslations(code) {
     currentTranslations = sourceStrings;
   }
 
-  // Surface a clear, deferred toast if the run was cut short.
-  if (error) {
+  if (!error) return;
+
+  // Decide whether to bother the user. If most keys still came back
+  // (≥ 70% of the source), the visible UI looks fully translated and
+  // the warning is just noise — silently schedule a background retry
+  // for the missing keys instead.
+  const finalCount = Object.keys(merged).length;
+  const fillRatio = sourceCount > 0 ? finalCount / sourceCount : 1;
+  const successDuringRun = finalCount - startCount;
+
+  if (fillRatio >= 0.7) {
+    // Quietly retry the gaps a minute later, when the per-minute Gemini
+    // quota window has reset. No toast.
+    scheduleBackgroundBackfill(code, merged, cacheKey, 65000);
+    return;
+  }
+
+  if (successDuringRun === 0) {
+    // Nothing came back at all — show a clear, actionable toast.
     const msg = (error.message || '').toLowerCase();
     let key = 'toastTranslateOverloaded';
-    if (/quota|exhausted|429|rate/.test(msg)) key = 'toastTranslateOverloaded';
-    else if (/timeout|timed out|abort/.test(msg)) key = 'toastTranslateTimeout';
+    if (/timeout|timed out|abort/.test(msg)) key = 'toastTranslateTimeout';
     else if (/missing.*gemini.*key|server missing/.test(msg)) key = 'toastTranslateNotConfigured';
     setTimeout(() => showFailureToast(key), 80);
+    // Still try a silent retry later, in case it was a transient blip.
+    scheduleBackgroundBackfill(code, merged, cacheKey, 65000);
+  } else {
+    // Partial success but below 70% — schedule silent backfill, no toast.
+    scheduleBackgroundBackfill(code, merged, cacheKey, 65000);
   }
 }
 
-const BATCH_SIZE = 30;
+// Schedule a one-shot, silent retry of any keys still missing for the
+// given language. Skips if the user has since switched to another
+// language. Updates DOM via applyTranslations on success.
+const BACKFILL_TIMERS = new Map();
+function scheduleBackgroundBackfill(code, mergedNow, cacheKey, delayMs) {
+  if (BACKFILL_TIMERS.has(code)) clearTimeout(BACKFILL_TIMERS.get(code));
+  const timer = setTimeout(async () => {
+    BACKFILL_TIMERS.delete(code);
+    if (currentLangCode !== code) return;
+    await backfillMissingKeys(code, mergedNow, cacheKey);
+  }, delayMs);
+  BACKFILL_TIMERS.set(code, timer);
+}
+
+const BATCH_SIZE = 50;
 const PARALLEL_LIMIT = 1;
 const FETCH_TIMEOUT_MS = 22000;
 
-// Split sourceStrings into batches, translate them sequentially, and merge
-// results into `seed`. Each batch failure is non-fatal; we keep whatever
-// succeeded so the next call only retries the gaps. On a 429 we stop
-// scheduling more batches — keep firing while the quota is empty just
-// burns the rest of the per-minute window.
-async function translateInBatches(targetLanguage, source, seed) {
+// Split sourceStrings into batches, translate them sequentially, merge
+// results into `seed`, and call onProgress(done, total) after each batch.
+// On a 429 we stop scheduling more batches — keep firing while the quota
+// is empty just burns the rest of the per-minute window.
+async function translateInBatches(targetLanguage, source, seed, onProgress) {
   const merged = Object.assign({}, seed);
   const allKeys = Object.keys(source).filter((k) => !merged[k]);
   if (allKeys.length === 0) return { merged, error: null };
@@ -182,8 +222,11 @@ async function translateInBatches(targetLanguage, source, seed) {
     batches.push(obj);
   }
 
+  if (typeof onProgress === 'function') onProgress(0, batches.length);
+
   let stopErr = null;
   let cursor = 0;
+  let done = 0;
   async function worker() {
     while (cursor < batches.length && !stopErr) {
       const idx = cursor++;
@@ -200,6 +243,9 @@ async function translateInBatches(targetLanguage, source, seed) {
         // Keep going on transient single-batch failures (timeout, parse
         // glitch). Other batches may still succeed.
         console.warn('Batch translate failed (continuing):', err.message || err);
+      } finally {
+        done++;
+        if (typeof onProgress === 'function') onProgress(done, batches.length);
       }
     }
   }
@@ -429,6 +475,19 @@ function showOverlay(languageName) {
   el.querySelector('.translation-overlay-text').textContent =
     languageName ? `${base} → ${languageName}` : base;
   el.classList.add('is-visible');
+}
+
+function updateOverlayProgress(languageName, done, total) {
+  const el = document.getElementById('translationOverlay');
+  if (!el) return;
+  const text = el.querySelector('.translation-overlay-text');
+  if (!text) return;
+  const base = t('translating');
+  if (total > 1) {
+    text.textContent = languageName
+      ? `${base} → ${languageName} (${done}/${total})`
+      : `${base} (${done}/${total})`;
+  }
 }
 
 function hideOverlay() {
