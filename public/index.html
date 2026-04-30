@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-page-title="pageTitle">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -13,6 +13,7 @@
 <body>
   <header class="topbar">
     <div class="topbar-inner">
+      <div class="lang-selector" id="langSelector"></div>
       <a class="brand" href="/" aria-label="FooLab home">
         <span class="brand-mark" aria-hidden="true">
           <svg viewBox="0 0 512 512" width="32" height="32">
@@ -32,12 +33,12 @@
         </span>
         <span class="brand-text">
           <span class="brand-name">FooLab</span>
-          <span class="brand-tag">food label scanner</span>
+          <span class="brand-tag" data-i18n="brandTag">food label scanner</span>
         </span>
       </a>
 
-      <nav class="topbar-nav" aria-label="App actions">
-        <button class="icon-btn" id="archiveBtn" type="button" aria-label="Open archive" title="Archive">
+      <nav class="topbar-nav" data-i18n-aria-label="appActions" aria-label="App actions">
+        <button class="icon-btn" id="archiveBtn" type="button" data-i18n-aria-label="archiveAria" data-i18n-title="archiveTitle" aria-label="Open archive" title="Archive">
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
             <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
               d="M8 4h10a2 2 0 0 1 2 2v10"/>
@@ -47,19 +48,19 @@
           </svg>
           <span class="count" id="archiveCount" data-zero="true"></span>
         </button>
-        <button class="icon-btn" id="shareAppBtn" type="button" aria-label="Share FooLab" title="Share">
+        <button class="icon-btn" id="shareAppBtn" type="button" data-i18n-aria-label="shareAppAria" data-i18n-title="shareAppTitle" aria-label="Share FooLab" title="Share">
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
             <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
               d="M12 16V4M12 4l-4 4M12 4l4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>
           </svg>
         </button>
-        <button class="icon-btn" id="installBtn" type="button" aria-label="Install app" title="Install" hidden>
+        <button class="icon-btn" id="installBtn" type="button" data-i18n-aria-label="installAria" data-i18n-title="installTitle" aria-label="Install app" title="Install" hidden>
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
             <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
               d="M12 4v12M12 16l-4-4M12 16l4-4M5 20h14"/>
           </svg>
         </button>
-        <button class="icon-btn" id="aboutBtn" type="button" aria-label="About FooLab" title="About">
+        <button class="icon-btn" id="aboutBtn" type="button" data-i18n-aria-label="aboutAria" data-i18n-title="aboutTitle" aria-label="About FooLab" title="About">
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
             <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/>
             <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
@@ -94,8 +95,8 @@
             <circle cx="256" cy="256" r="10" fill="#fff59d"/>
           </svg>
         </div>
-        <h2 class="hero-title">Know what's inside</h2>
-        <p class="hero-sub">Snap a label, get a NutriScore grade and red-flag alerts in seconds.</p>
+        <h2 class="hero-title" data-i18n="heroTitle">Know what's inside</h2>
+        <p class="hero-sub" data-i18n="heroSub">Snap a label, get a NutriScore grade and red-flag alerts in seconds.</p>
 
         <button class="btn btn-primary btn-hero" id="cameraBtn" type="button">
           <svg class="btn-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -103,7 +104,7 @@
               d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/>
             <circle cx="12" cy="13" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/>
           </svg>
-          <span>Scan a label</span>
+          <span data-i18n="scanLabelBtn">Scan a label</span>
         </button>
         <input type="file" accept="image/*" capture="environment" id="cameraInput" hidden>
 
@@ -114,7 +115,7 @@
             <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"
               d="M5 17l4-5 3 3 3-4 4 5"/>
           </svg>
-          <span>Choose from gallery</span>
+          <span data-i18n="chooseGalleryBtn">Choose from gallery</span>
         </button>
         <input type="file" accept="image/*" id="galleryInput" hidden>
       </div>
@@ -127,8 +128,8 @@
           </svg>
         </div>
         <div class="catalog-cta-text">
-          <div class="catalog-cta-title">Search the public catalog first</div>
-          <div class="catalog-cta-sub">Other shoppers may have already scanned this product. Scan only if you can't find it here.</div>
+          <div class="catalog-cta-title" data-i18n="catalogCtaTitle">Search the public catalog first</div>
+          <div class="catalog-cta-sub" data-i18n="catalogCtaSub">Other shoppers may have already scanned this product. Scan only if you can't find it here.</div>
         </div>
         <svg class="catalog-cta-chev" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
           <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6"/>
@@ -139,15 +140,15 @@
         <div class="feature">
           <div class="feature-icon" style="background:linear-gradient(135deg,#2e7d32,#66bb6a)">A</div>
           <div>
-            <div class="feature-title">NutriScore A–E</div>
-            <div class="feature-sub">Grade + 0–100 score</div>
+            <div class="feature-title" data-i18n="featureNutriscoreTitle">NutriScore A–E</div>
+            <div class="feature-sub" data-i18n="featureNutriscoreSub">Grade + 0–100 score</div>
           </div>
         </div>
         <div class="feature">
           <div class="feature-icon flag">!</div>
           <div>
-            <div class="feature-title">Red-flag alerts</div>
-            <div class="feature-sub">Palm oil, E-numbers, sugar</div>
+            <div class="feature-title" data-i18n="featureRedflagsTitle">Red-flag alerts</div>
+            <div class="feature-sub" data-i18n="featureRedflagsSub">Palm oil, E-numbers, sugar</div>
           </div>
         </div>
         <div class="feature">
@@ -155,21 +156,21 @@
             <svg viewBox="0 0 24 24" width="18" height="18"><path fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 10V8a6 6 0 0 1 12 0v2M5 10h14v10H5z"/></svg>
           </div>
           <div>
-            <div class="feature-title">Private by default</div>
-            <div class="feature-sub">Archive on-device · catalog is opt-in</div>
+            <div class="feature-title" data-i18n="featurePrivateTitle">Private by default</div>
+            <div class="feature-sub" data-i18n="featurePrivateSub">Archive on-device · catalog is opt-in</div>
           </div>
         </div>
       </div>
 
       <div class="tips-card">
-        <h2>How to scan well</h2>
-        <p class="tips-lead">Take three photos for the best card:</p>
+        <h2 data-i18n="tipsHeading">How to scan well</h2>
+        <p class="tips-lead" data-i18n="tipsLead">Take three photos for the best card:</p>
         <ol class="tips-numbered">
-          <li><strong>The whole product</strong> — front of pack, used as the catalog thumbnail.</li>
-          <li><strong>The ingredients list</strong> — close-up, sharp text, fill the frame.</li>
-          <li><strong>The nutrition table</strong> — for an accurate NutriScore.</li>
+          <li><strong data-i18n="tipsItem1Strong">The whole product</strong><span data-i18n="tipsItem1Rest"> — front of pack, used as the catalog thumbnail.</span></li>
+          <li><strong data-i18n="tipsItem2Strong">The ingredients list</strong><span data-i18n="tipsItem2Rest"> — close-up, sharp text, fill the frame.</span></li>
+          <li><strong data-i18n="tipsItem3Strong">The nutrition table</strong><span data-i18n="tipsItem3Rest"> — for an accurate NutriScore.</span></li>
         </ol>
-        <p class="tips-foot">Bright, even light. Hold steady. Tap to focus until the text is sharp.</p>
+        <p class="tips-foot" data-i18n="tipsFoot">Bright, even light. Hold steady. Tap to focus until the text is sharp.</p>
       </div>
     </section>
 
@@ -179,10 +180,10 @@
         <canvas id="cropCanvas"></canvas>
       </div>
       <div class="crop-actions">
-        <button class="btn btn-ghost" id="cropBackBtn" type="button">← Back</button>
-        <button class="btn btn-secondary" id="addPhotoBtn" type="button">+ Add photo</button>
+        <button class="btn btn-ghost" id="cropBackBtn" type="button" data-i18n="back">← Back</button>
+        <button class="btn btn-secondary" id="addPhotoBtn" type="button" data-i18n="addPhoto">+ Add photo</button>
         <input type="file" accept="image/*" capture="environment" id="addPhotoInput" hidden>
-        <button class="btn btn-primary" id="analyzeBtn" type="button">Analyze →</button>
+        <button class="btn btn-primary" id="analyzeBtn" type="button" data-i18n="analyze">Analyze →</button>
       </div>
       <p class="photo-meta" id="photoMeta">Photo 1 of 1</p>
       <div class="photo-strip" id="photoStrip"></div>
@@ -206,8 +207,8 @@
         <input type="checkbox" id="publishCheckbox" checked>
         <span class="publish-toggle-track" aria-hidden="true"></span>
         <span class="publish-toggle-text">
-          <span class="publish-toggle-title">Let the world know about your finding</span>
-          <span class="publish-toggle-sub">Adds this card to the public catalog so other shoppers can find it.</span>
+          <span class="publish-toggle-title" data-i18n="publishToggleTitle">Let the world know about your finding</span>
+          <span class="publish-toggle-sub" data-i18n="publishToggleSub">Adds this card to the public catalog so other shoppers can find it.</span>
         </span>
       </label>
       <div class="result-actions">
@@ -216,21 +217,21 @@
             <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
               d="M5 3h11l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM7 3v5h9V3M7 21v-7h10v7"/>
           </svg>
-          <span>Save</span>
+          <span data-i18n="save">Save</span>
         </button>
         <button class="btn btn-secondary" id="shareBtn" type="button">
           <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
             <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
               d="M12 16V4M12 4l-4 4M12 4l4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>
           </svg>
-          <span>Share</span>
+          <span data-i18n="share">Share</span>
         </button>
         <button class="btn btn-ghost" id="rescanBtn" type="button">
           <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
             <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
               d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/>
           </svg>
-          <span>Rescan</span>
+          <span data-i18n="rescan">Rescan</span>
         </button>
       </div>
     </section>
@@ -238,8 +239,8 @@
     <!-- 5. ARCHIVE -->
     <section class="screen" id="screen-archive" hidden>
       <div class="screen-header">
-        <button class="btn btn-ghost" id="archiveBackBtn" type="button">← Back</button>
-        <h2>Archive</h2>
+        <button class="btn btn-ghost" id="archiveBackBtn" type="button" data-i18n="back">← Back</button>
+        <h2 data-i18n="archiveHeading">Archive</h2>
       </div>
       <div class="archive-grid" id="archiveGrid"></div>
       <div class="empty-state" id="archiveEmpty" hidden>
@@ -249,15 +250,15 @@
               d="M3 7h18M5 7v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
           </svg>
         </div>
-        <p>No scans yet. Try your first one.</p>
-        <button class="btn btn-primary" id="archiveScanBtn" type="button">Scan a label</button>
+        <p data-i18n="archiveEmpty">No scans yet. Try your first one.</p>
+        <button class="btn btn-primary" id="archiveScanBtn" type="button" data-i18n="scanLabelBtn">Scan a label</button>
       </div>
     </section>
 
     <!-- 6. DETAIL -->
     <section class="screen" id="screen-detail" hidden>
       <div class="screen-header">
-        <button class="btn btn-ghost" id="detailBackBtn" type="button">← Archive</button>
+        <button class="btn btn-ghost" id="detailBackBtn" type="button" data-i18n="detailBack">← Archive</button>
       </div>
       <div id="detailMount"></div>
       <div class="result-actions">
@@ -266,14 +267,14 @@
             <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
               d="M12 16V4M12 4l-4 4M12 4l4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>
           </svg>
-          <span>Share</span>
+          <span data-i18n="share">Share</span>
         </button>
         <button class="btn btn-danger" id="deleteBtn" type="button">
           <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
             <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
               d="M4 7h16M9 7V4h6v3M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13M10 11v7M14 11v7"/>
           </svg>
-          <span>Delete</span>
+          <span data-i18n="delete">Delete</span>
         </button>
       </div>
     </section>
@@ -281,25 +282,25 @@
     <!-- 7. CATALOG (public) -->
     <section class="screen" id="screen-catalog" hidden>
       <div class="screen-header">
-        <button class="btn btn-ghost" id="catalogBackBtn" type="button">← Back</button>
-        <h2>Public catalog</h2>
+        <button class="btn btn-ghost" id="catalogBackBtn" type="button" data-i18n="back">← Back</button>
+        <h2 data-i18n="catalogHeading">Public catalog</h2>
       </div>
 
       <div class="catalog-tabs" role="tablist" aria-label="Catalog kind">
-        <button class="catalog-tab is-active" data-kind="" type="button" role="tab">All</button>
-        <button class="catalog-tab" data-kind="food" type="button" role="tab">Food</button>
-        <button class="catalog-tab" data-kind="drink" type="button" role="tab">Drinks</button>
+        <button class="catalog-tab is-active" data-kind="" type="button" role="tab" data-i18n="catalogTabAll">All</button>
+        <button class="catalog-tab" data-kind="food" type="button" role="tab" data-i18n="catalogTabFood">Food</button>
+        <button class="catalog-tab" data-kind="drink" type="button" role="tab" data-i18n="catalogTabDrinks">Drinks</button>
       </div>
 
       <div class="catalog-search">
-        <input type="search" id="catalogSearchInput" placeholder="Search by product or brand…" autocomplete="off">
+        <input type="search" id="catalogSearchInput" data-i18n-placeholder="catalogSearchPlaceholder" placeholder="Search by product or brand…" autocomplete="off">
       </div>
 
       <details class="catalog-filters-wrap">
-        <summary>Filters</summary>
+        <summary data-i18n="catalogFilters">Filters</summary>
         <div class="catalog-filters">
           <div class="catalog-filter-row" role="group" aria-label="NutriScore filter">
-            <span class="catalog-filter-label">Keep</span>
+            <span class="catalog-filter-label" data-i18n="catalogKeep">Keep</span>
             <button class="filter-chip ns-A" data-ns="A" type="button">A</button>
             <button class="filter-chip ns-B" data-ns="B" type="button">B</button>
             <button class="filter-chip ns-C" data-ns="C" type="button">C</button>
@@ -307,20 +308,20 @@
             <button class="filter-chip ns-E" data-ns="E" type="button">E</button>
           </div>
           <div class="catalog-filter-row" role="group" aria-label="Avoid filter">
-            <span class="catalog-filter-label">Avoid</span>
-            <button class="filter-chip avoid-chip" data-avoid="palmOil" type="button">Palm oil</button>
-            <button class="filter-chip avoid-chip" data-avoid="highSugar" type="button">High sugar</button>
-            <button class="filter-chip avoid-chip" data-avoid="highSalt" type="button">High salt</button>
-            <button class="filter-chip avoid-chip" data-avoid="sweetener" type="button">Sweetener</button>
-            <button class="filter-chip avoid-chip" data-avoid="artificialColor" type="button">Artif. color</button>
-            <button class="filter-chip avoid-chip" data-avoid="preservative" type="button">Preservative</button>
-            <button class="filter-chip avoid-chip" data-avoid="ultraProcessed" type="button">Ultra-proc.</button>
+            <span class="catalog-filter-label" data-i18n="catalogAvoid">Avoid</span>
+            <button class="filter-chip avoid-chip" data-avoid="palmOil" type="button" data-i18n="flagPalmOil">Palm oil</button>
+            <button class="filter-chip avoid-chip" data-avoid="highSugar" type="button" data-i18n="flagHighSugar">High sugar</button>
+            <button class="filter-chip avoid-chip" data-avoid="highSalt" type="button" data-i18n="flagHighSalt">High salt</button>
+            <button class="filter-chip avoid-chip" data-avoid="sweetener" type="button" data-i18n="flagSweetener">Sweetener</button>
+            <button class="filter-chip avoid-chip" data-avoid="artificialColor" type="button" data-i18n="flagArtificialColorShort">Artif. color</button>
+            <button class="filter-chip avoid-chip" data-avoid="preservative" type="button" data-i18n="flagPreservative">Preservative</button>
+            <button class="filter-chip avoid-chip" data-avoid="ultraProcessed" type="button" data-i18n="flagUltraProcessedShort">Ultra-proc.</button>
           </div>
           <div class="catalog-filter-row" role="group" aria-label="Sort">
-            <span class="catalog-filter-label">Sort</span>
-            <button class="filter-chip sort-chip is-active" data-sort="recent" type="button">Recent</button>
-            <button class="filter-chip sort-chip" data-sort="popular" type="button">Popular</button>
-            <button class="filter-chip sort-chip" data-sort="best" type="button">Best score</button>
+            <span class="catalog-filter-label" data-i18n="catalogSort">Sort</span>
+            <button class="filter-chip sort-chip is-active" data-sort="recent" type="button" data-i18n="catalogSortRecent">Recent</button>
+            <button class="filter-chip sort-chip" data-sort="popular" type="button" data-i18n="catalogSortPopular">Popular</button>
+            <button class="filter-chip sort-chip" data-sort="best" type="button" data-i18n="catalogSortBest">Best score</button>
           </div>
         </div>
       </details>
@@ -328,17 +329,17 @@
       <div class="catalog-meta" id="catalogMeta"></div>
       <div class="catalog-grid archive-grid" id="catalogGrid"></div>
       <div class="empty-state" id="catalogEmpty" hidden>
-        <p id="catalogEmptyMsg">No products yet. Be the first — scan something.</p>
+        <p id="catalogEmptyMsg" data-i18n="catalogEmpty">No products yet. Be the first — scan something.</p>
       </div>
       <div class="catalog-loadmore" hidden>
-        <button class="btn btn-secondary" id="catalogMoreBtn" type="button">Load more</button>
+        <button class="btn btn-secondary" id="catalogMoreBtn" type="button" data-i18n="catalogLoadMore">Load more</button>
       </div>
     </section>
 
     <!-- 8. CATALOG DETAIL -->
     <section class="screen" id="screen-catalog-detail" hidden>
       <div class="screen-header">
-        <button class="btn btn-ghost" id="catalogDetailBackBtn" type="button">← Catalog</button>
+        <button class="btn btn-ghost" id="catalogDetailBackBtn" type="button" data-i18n="catalogBack">← Catalog</button>
       </div>
       <div class="catalog-detail-meta" id="catalogDetailMeta"></div>
       <div id="catalogDetailMount"></div>
@@ -347,15 +348,15 @@
     <!-- ABOUT -->
     <section class="screen" id="screen-about" hidden>
       <div class="screen-header">
-        <button class="btn btn-ghost" id="aboutBackBtn" type="button">← Back</button>
-        <h2>About FooLab</h2>
+        <button class="btn btn-ghost" id="aboutBackBtn" type="button" data-i18n="back">← Back</button>
+        <h2 data-i18n="aboutHeading">About FooLab</h2>
       </div>
       <div class="about-body">
-        <p>FooLab reads food and drink labels with AI and gives you a NutriScore grade plus red-flag alerts — palm oil, artificial colors, controversial additives, high sugar or salt.</p>
-        <p><strong>Privacy:</strong> your scan archive lives only on this phone. The photo you capture is sent to the AI for analysis and discarded after.</p>
-        <p><strong>Public catalog:</strong> when you save a scan, you can tick <em>"Let the world know about your finding"</em> to add the card and a square thumbnail to the shared catalog so other shoppers can find the product. The toggle defaults on but you can switch it off for any scan, or every scan, and nothing leaves your phone beyond the AI analysis.</p>
-        <p><strong>Not medical advice.</strong> Use alongside your own judgement and any dietary guidance from your doctor.</p>
-        <p class="muted">v0.1 · NutriScore method: <a href="https://nutriscore.ca/" target="_blank" rel="noopener">nutriscore.ca</a></p>
+        <p data-i18n="aboutP1">FooLab reads food and drink labels with AI and gives you a NutriScore grade plus red-flag alerts — palm oil, artificial colors, controversial additives, high sugar or salt.</p>
+        <p><strong data-i18n="aboutP2Strong">Privacy:</strong><span data-i18n="aboutP2Rest"> your scan archive lives only on this phone. The photo you capture is sent to the AI for analysis and discarded after.</span></p>
+        <p><strong data-i18n="aboutP3Strong">Public catalog:</strong><span data-i18n="aboutP3Rest"> when you save a scan, you can tick "Let the world know about your finding" to add the card and a square thumbnail to the shared catalog so other shoppers can find the product. The toggle defaults on but you can switch it off for any scan, or every scan, and nothing leaves your phone beyond the AI analysis.</span></p>
+        <p><strong data-i18n="aboutP4Strong">Not medical advice.</strong><span data-i18n="aboutP4Rest"> Use alongside your own judgement and any dietary guidance from your doctor.</span></p>
+        <p class="muted"><span data-i18n="aboutFooter">v0.1 · NutriScore method:</span> <a href="https://nutriscore.ca/" target="_blank" rel="noopener">nutriscore.ca</a></p>
       </div>
     </section>
 

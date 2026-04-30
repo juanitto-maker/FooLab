@@ -5,29 +5,30 @@ import {
   loadEnumbersDB, lookupAdditive,
   computeAdditiveRating, getConditionWarnings, frequencyGuidance
 } from './additives.js';
+import { t } from './i18n.js';
 
-const RED_FLAG_LABELS = {
-  palmOil: 'Palm oil',
-  transFat: 'Trans fat',
-  highSugar: 'High sugar',
-  highSalt: 'High salt',
-  highSatFat: 'High sat fat',
-  artificialColor: 'Artificial color',
-  preservative: 'Preservative',
-  sweetener: 'Sweetener',
-  msg: 'MSG',
-  bhaBht: 'BHA/BHT',
-  ultraProcessed: 'Ultra-processed',
-  allergen: 'Allergen'
+const RED_FLAG_KEYS = {
+  palmOil: 'flagPalmOil',
+  transFat: 'flagTransFat',
+  highSugar: 'flagHighSugar',
+  highSalt: 'flagHighSalt',
+  highSatFat: 'flagHighSatFat',
+  artificialColor: 'flagArtificialColor',
+  preservative: 'flagPreservative',
+  sweetener: 'flagSweetener',
+  msg: 'flagMsg',
+  bhaBht: 'flagBhaBht',
+  ultraProcessed: 'flagUltraProcessed',
+  allergen: 'flagAllergen'
 };
 
 const NUTRITION_ROWS = [
-  ['energyKcal', 'Energy', 'kcal'],
-  ['sugar',      'Sugar',  'g'],
-  ['satFat',     'Sat fat','g'],
-  ['salt',       'Salt',   'g'],
-  ['fiber',      'Fiber',  'g'],
-  ['protein',    'Protein','g']
+  ['energyKcal', 'nutrEnergy',  'kcal'],
+  ['sugar',      'nutrSugar',   'g'],
+  ['satFat',     'nutrSatFat',  'g'],
+  ['salt',       'nutrSalt',    'g'],
+  ['fiber',      'nutrFiber',   'g'],
+  ['protein',    'nutrProtein', 'g']
 ];
 
 export function renderScorecard(result, photoBlob, container) {
@@ -47,7 +48,7 @@ export function renderScorecard(result, photoBlob, container) {
 
   const head = el('div', 'product-head');
   const name = el('h2');
-  name.textContent = result.productName || 'Unknown product';
+  name.textContent = result.productName || t('unknownProduct');
   head.appendChild(name);
   if (result.brand) {
     const brand = el('div', 'product-brand');
@@ -62,10 +63,12 @@ export function renderScorecard(result, photoBlob, container) {
   card.appendChild(head);
 
   const scoreLine = el('div', 'score-line');
-  scoreLine.innerHTML = `
-    <span>Health score</span>
-    <span class="big">${clampNum(result.healthScore)} / 100</span>
-  `;
+  const scoreLabel = el('span');
+  scoreLabel.textContent = t('healthScore');
+  const scoreValue = el('span', 'big');
+  scoreValue.textContent = t('healthScoreOf100', { score: clampNum(result.healthScore) });
+  scoreLine.appendChild(scoreLabel);
+  scoreLine.appendChild(scoreValue);
   card.appendChild(scoreLine);
 
   // Additive traffic light — derived client-side from eNumbers + flags
@@ -75,7 +78,7 @@ export function renderScorecard(result, photoBlob, container) {
   // Condition-agnostic warnings — diabetes, hypertension, allergies, PKU, etc.
   const warnings = getConditionWarnings(result);
   if (warnings.length > 0) {
-    card.appendChild(sectionTitle('Heads-up for'));
+    card.appendChild(sectionTitle(t('sectionHeadsUp')));
     const chips = el('div', 'condition-chips');
     for (const w of warnings) {
       const chip = el('span', `condition-chip sev-${w.severity || 'medium'}`);
@@ -96,12 +99,12 @@ export function renderScorecard(result, photoBlob, container) {
   }
 
   if (Array.isArray(result.redFlags) && result.redFlags.length > 0) {
-    card.appendChild(sectionTitle('Red flags'));
+    card.appendChild(sectionTitle(t('sectionRedFlags')));
     const chips = el('div', 'chips');
     for (const flag of result.redFlags) {
       const sev = flag.severity || 'medium';
       const chip = el('span', `chip chip-${sev}`);
-      chip.textContent = RED_FLAG_LABELS[flag.type] || flag.type;
+      chip.textContent = redFlagLabel(flag.type);
       if (flag.detail) chip.title = flag.detail;
       chips.appendChild(chip);
     }
@@ -122,7 +125,7 @@ export function renderScorecard(result, photoBlob, container) {
   }
 
   if (Array.isArray(result.eNumbers) && result.eNumbers.length > 0) {
-    card.appendChild(sectionTitle('E-numbers / additives'));
+    card.appendChild(sectionTitle(t('sectionEnumbers')));
     const list = el('ul', 'enumbers');
     for (const e of result.eNumbers) {
       list.appendChild(renderEnumberItem(e));
@@ -131,20 +134,20 @@ export function renderScorecard(result, photoBlob, container) {
   }
 
   if (Array.isArray(result.ingredients) && result.ingredients.length > 0) {
-    card.appendChild(sectionTitle('Ingredients'));
+    card.appendChild(sectionTitle(t('sectionIngredients')));
     const p = el('p', 'ingredients-list');
     p.textContent = result.ingredients.join(', ');
     card.appendChild(p);
   }
 
   if (result.nutrition && hasAnyNutrition(result.nutrition)) {
-    card.appendChild(sectionTitle(`Nutrition (per ${result.nutrition.per || '100g'})`));
+    card.appendChild(sectionTitle(t('sectionNutritionPer', { per: result.nutrition.per || '100g' })));
     const table = el('table', 'nutrition-table');
-    for (const [key, label, unit] of NUTRITION_ROWS) {
+    for (const [key, labelKey, unit] of NUTRITION_ROWS) {
       const v = result.nutrition[key];
       if (v == null) continue;
       const tr = el('tr');
-      const td1 = el('td'); td1.textContent = label;
+      const td1 = el('td'); td1.textContent = t(labelKey);
       const td2 = el('td'); td2.textContent = `${round1(v)} ${unit}`;
       tr.appendChild(td1); tr.appendChild(td2);
       table.appendChild(tr);
@@ -153,7 +156,7 @@ export function renderScorecard(result, photoBlob, container) {
   }
 
   if (Array.isArray(result.allergens) && result.allergens.length > 0) {
-    card.appendChild(sectionTitle('Allergens'));
+    card.appendChild(sectionTitle(t('sectionAllergens')));
     const chips = el('div', 'chips');
     for (const a of result.allergens) {
       const chip = el('span', 'chip chip-low');
@@ -164,14 +167,16 @@ export function renderScorecard(result, photoBlob, container) {
   }
 
   if (result.tips) {
-    card.appendChild(sectionTitle('Tips'));
+    card.appendChild(sectionTitle(t('sectionTips')));
     const p = el('p');
     p.textContent = result.tips;
     card.appendChild(p);
   }
 
   const conf = el('span', 'confidence-badge');
-  conf.textContent = `Confidence: ${result.confidence || 'medium'}`;
+  const level = result.confidence || 'medium';
+  const levelKey = { low: 'confidenceLow', medium: 'confidenceMedium', high: 'confidenceHigh' }[level] || 'confidenceMedium';
+  conf.textContent = t('confidenceBadge', { level: t(levelKey) });
   card.appendChild(conf);
 
   container.appendChild(card);
@@ -234,21 +239,21 @@ function renderDbDetail(ref, aiConcern) {
   const wrap = el('div', 'enumber-detail');
 
   if (ref.what) {
-    wrap.appendChild(detailRow('About', ref.what));
+    wrap.appendChild(detailRow(t('enumberAbout'), ref.what));
   }
   if (ref.smallDose) {
-    wrap.appendChild(detailRow('Small amounts', ref.smallDose));
+    wrap.appendChild(detailRow(t('enumberSmallDose'), ref.smallDose));
   }
   if (ref.largeDose) {
-    wrap.appendChild(detailRow('Daily / heavy use', ref.largeDose));
+    wrap.appendChild(detailRow(t('enumberLargeDose'), ref.largeDose));
   }
 
   const guide = frequencyGuidance(ref.concern || aiConcern);
-  if (guide) wrap.appendChild(detailRow('Consumption', guide));
+  if (guide) wrap.appendChild(detailRow(t('enumberConsumption'), guide));
 
   if (Array.isArray(ref.conditions) && ref.conditions.length > 0) {
     const lbl = el('div', 'enumber-detail-label');
-    lbl.textContent = 'Relevant for';
+    lbl.textContent = t('enumberRelevantFor');
     wrap.appendChild(lbl);
     const chips = el('div', 'condition-chips');
     for (const cond of ref.conditions) {
@@ -275,18 +280,23 @@ function detailRow(label, text) {
 
 function humanizeCondition(key) {
   const map = {
-    diabetes: 'Diabetes',
-    hypertension: 'Hypertension',
-    hypotension: 'Low blood pressure',
-    pku: 'PKU',
-    sulfite_sensitivity: 'Sulfite sensitivity',
-    adhd_children: 'ADHD-sensitive children',
-    kidney: 'Kidney disease',
-    thyroid: 'Thyroid',
-    ibs: 'IBS / sensitive gut',
-    migraine: 'Migraine-prone'
+    diabetes: 'condDiabetes',
+    hypertension: 'condHypertension',
+    hypotension: 'condHypotension',
+    pku: 'condPku',
+    sulfite_sensitivity: 'condSulfite',
+    adhd_children: 'condAdhdChildren',
+    kidney: 'condKidney',
+    thyroid: 'condThyroid',
+    ibs: 'condIbs',
+    migraine: 'condMigraine'
   };
-  return map[key] || key;
+  return map[key] ? t(map[key]) : key;
+}
+
+function redFlagLabel(type) {
+  const k = RED_FLAG_KEYS[type];
+  return k ? t(k) : type;
 }
 
 function enrich(container, result, db) {
@@ -302,8 +312,9 @@ function enrich(container, result, db) {
 
   // Merge DB condition tags into the warnings section.
   const fullWarnings = getConditionWarnings(result, db);
+  const headsUp = t('sectionHeadsUp');
   const warningsTitle = [...container.querySelectorAll('.section-title')]
-    .find((n) => n.textContent === 'Heads-up for');
+    .find((n) => n.textContent === headsUp);
   if (fullWarnings.length > 0) {
     if (warningsTitle) {
       const chipsEl = warningsTitle.nextElementSibling;
@@ -329,7 +340,7 @@ function enrich(container, result, db) {
     } else {
       // Condition section wasn't rendered initially — DB surfaced new tags.
       // Inject it right before the Red flags title, or at the end if none.
-      const title = sectionTitle('Heads-up for');
+      const title = sectionTitle(t('sectionHeadsUp'));
       const chipsEl = el('div', 'condition-chips');
       const detailsEl = el('div', 'condition-details');
       for (const w of fullWarnings) {
@@ -344,8 +355,10 @@ function enrich(container, result, db) {
         }
       }
       const scorecard = container.querySelector('.scorecard');
+      const redFlagsLabel = t('sectionRedFlags');
+      const enumbersLabel = t('sectionEnumbers');
       const anchor = [...scorecard.querySelectorAll('.section-title')]
-        .find((n) => n.textContent === 'Red flags' || n.textContent === 'E-numbers / additives');
+        .find((n) => n.textContent === redFlagsLabel || n.textContent === enumbersLabel);
       if (anchor) {
         scorecard.insertBefore(title, anchor);
         scorecard.insertBefore(chipsEl, anchor);
@@ -373,10 +386,10 @@ function enrich(container, result, db) {
 function renderUnreadable(result) {
   const card = el('div', 'scorecard');
   const h = el('h2');
-  h.textContent = 'Could not read the label';
+  h.textContent = t('unreadableTitle');
   card.appendChild(h);
   const p = el('p');
-  p.textContent = result.reason || 'Try a closer, better-lit photo.';
+  p.textContent = result.reason || t('unreadableMessage');
   card.appendChild(p);
   return card;
 }

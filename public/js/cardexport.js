@@ -1,6 +1,8 @@
 // Export a scan as a 1080×1350 PNG (Instagram portrait) and share via Web Share,
 // with a download fallback.
 
+import { t } from './i18n.js';
+
 const W = 1080;
 const H = 1350;
 
@@ -16,19 +18,19 @@ const SEV_COLORS = {
   medium: '#f57c00',
   high: '#c62828'
 };
-const RED_FLAG_LABELS = {
-  palmOil: 'Palm oil',
-  transFat: 'Trans fat',
-  highSugar: 'High sugar',
-  highSalt: 'High salt',
-  highSatFat: 'High sat fat',
-  artificialColor: 'Artificial color',
-  preservative: 'Preservative',
-  sweetener: 'Sweetener',
-  msg: 'MSG',
-  bhaBht: 'BHA/BHT',
-  ultraProcessed: 'Ultra-processed',
-  allergen: 'Allergen'
+const RED_FLAG_KEYS = {
+  palmOil: 'flagPalmOil',
+  transFat: 'flagTransFat',
+  highSugar: 'flagHighSugar',
+  highSalt: 'flagHighSalt',
+  highSatFat: 'flagHighSatFat',
+  artificialColor: 'flagArtificialColor',
+  preservative: 'flagPreservative',
+  sweetener: 'flagSweetener',
+  msg: 'flagMsg',
+  bhaBht: 'flagBhaBht',
+  ultraProcessed: 'flagUltraProcessed',
+  allergen: 'flagAllergen'
 };
 
 export async function exportCard(scan) {
@@ -66,7 +68,7 @@ export async function exportCard(scan) {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
   ctx.font = '700 48px -apple-system, "Segoe UI", Roboto, system-ui, sans-serif';
-  wrapText(ctx, scan.result?.productName || 'Unknown product', 340, 600, W - 400, 56, 2);
+  wrapText(ctx, scan.result?.productName || t('unknownProduct'), 340, 600, W - 400, 56, 2);
 
   if (scan.result?.brand) {
     ctx.fillStyle = '#555';
@@ -78,14 +80,15 @@ export async function exportCard(scan) {
   ctx.fillStyle = '#1a1a1a';
   ctx.font = '600 34px -apple-system, "Segoe UI", Roboto, system-ui, sans-serif';
   const score = clamp(scan.result?.healthScore);
-  ctx.fillText(`Health score: ${score} / 100`, 340, 770);
+  ctx.fillText(`${t('healthScore')}: ${t('healthScoreOf100', { score })}`, 340, 770);
 
   // Red flags — up to 4 chips stacked
   const flags = (scan.result?.redFlags || []).slice(0, 4);
   let y = 880;
   ctx.font = '600 28px -apple-system, "Segoe UI", Roboto, system-ui, sans-serif';
   for (const f of flags) {
-    const label = RED_FLAG_LABELS[f.type] || f.type;
+    const labelKey = RED_FLAG_KEYS[f.type];
+    const label = labelKey ? t(labelKey) : f.type;
     const color = SEV_COLORS[f.severity] || SEV_COLORS.medium;
     drawChip(ctx, label, 60, y, color, f.severity === 'low' ? '#1a1a1a' : '#fff');
     y += 72;
@@ -95,7 +98,7 @@ export async function exportCard(scan) {
   ctx.fillStyle = '#888';
   ctx.font = '400 26px -apple-system, "Segoe UI", Roboto, system-ui, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('Scanned with FooLab', W / 2, H - 64);
+  ctx.fillText(t('cardFooter'), W / 2, H - 64);
 
   const blob = await canvasToBlob(canvas);
   await shareOrDownload(blob, scan);
