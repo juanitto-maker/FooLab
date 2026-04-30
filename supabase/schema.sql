@@ -14,6 +14,7 @@ create table if not exists catalog_scans (
   product_name    text not null,
   brand           text,
   category        text,
+  kind            text not null default 'food' check (kind in ('food','drink')),
   nutri_score     text not null check (nutri_score in ('A','B','C','D','E')),
   health_score    int,
   summary         text,
@@ -29,6 +30,18 @@ create table if not exists catalog_scans (
   updated_at      timestamptz not null default now()
 );
 
+-- Idempotent column add for projects created before kind was introduced.
+alter table catalog_scans add column if not exists kind text not null default 'food';
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'catalog_scans_kind_check'
+  ) then
+    alter table catalog_scans add constraint catalog_scans_kind_check
+      check (kind in ('food','drink'));
+  end if;
+end$$;
+
 -- Computed search column for fulltext.
 alter table catalog_scans
   add column if not exists search_text text
@@ -41,6 +54,7 @@ alter table catalog_scans
 create index if not exists idx_catalog_product_key on catalog_scans(product_key);
 create index if not exists idx_catalog_nutri       on catalog_scans(nutri_score);
 create index if not exists idx_catalog_brand       on catalog_scans(brand);
+create index if not exists idx_catalog_kind        on catalog_scans(kind);
 create index if not exists idx_catalog_updated     on catalog_scans(updated_at desc);
 create index if not exists idx_catalog_scan_count  on catalog_scans(scan_count desc);
 create index if not exists idx_catalog_search      on catalog_scans

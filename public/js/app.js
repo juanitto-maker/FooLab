@@ -28,8 +28,9 @@ const state = {
   catalog: {
     enabled: false,
     query: '',
+    kind: '',
     nutriScore: [],
-    flag: null,
+    avoidFlags: [],
     sort: 'recent',
     offset: 0,
     rows: [],
@@ -482,6 +483,23 @@ function wireCatalog() {
     }, 250);
   });
 
+  // Food / All / Drinks tabs.
+  for (const tab of document.querySelectorAll('#screen-catalog [data-kind]')) {
+    tab.addEventListener('click', () => {
+      state.catalog.kind = tab.dataset.kind;
+      for (const t of document.querySelectorAll('#screen-catalog [data-kind]')) {
+        t.classList.toggle('is-active', t === tab);
+      }
+      // Reset the search input placeholder so the user knows the scope.
+      input.placeholder = state.catalog.kind === 'food'
+        ? 'Search foods…'
+        : state.catalog.kind === 'drink'
+          ? 'Search drinks…'
+          : 'Search by product or brand…';
+      reloadCatalog({ reset: true });
+    });
+  }
+
   for (const chip of document.querySelectorAll('#screen-catalog [data-ns]')) {
     chip.addEventListener('click', () => {
       const v = chip.dataset.ns;
@@ -493,17 +511,13 @@ function wireCatalog() {
     });
   }
 
-  for (const chip of document.querySelectorAll('#screen-catalog [data-flag]')) {
+  for (const chip of document.querySelectorAll('#screen-catalog [data-avoid]')) {
     chip.addEventListener('click', () => {
-      const v = chip.dataset.flag;
-      if (state.catalog.flag === v) {
-        state.catalog.flag = null;
-      } else {
-        state.catalog.flag = v;
-      }
-      for (const c of document.querySelectorAll('#screen-catalog [data-flag]')) {
-        c.classList.toggle('is-active', c.dataset.flag === state.catalog.flag);
-      }
+      const v = chip.dataset.avoid;
+      const i = state.catalog.avoidFlags.indexOf(v);
+      if (i >= 0) state.catalog.avoidFlags.splice(i, 1);
+      else state.catalog.avoidFlags.push(v);
+      chip.classList.toggle('is-active');
       reloadCatalog({ reset: true });
     });
   }
@@ -541,8 +555,9 @@ async function reloadCatalog({ reset }) {
   try {
     const { rows, total } = await catalog.searchCatalog({
       q: state.catalog.query,
+      kind: state.catalog.kind || null,
       nutriScore: state.catalog.nutriScore,
-      flag: state.catalog.flag,
+      avoidFlags: state.catalog.avoidFlags,
       sort: state.catalog.sort,
       offset: state.catalog.offset,
       limit: 24

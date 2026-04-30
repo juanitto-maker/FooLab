@@ -23,31 +23,38 @@ export async function isCatalogEnabled() {
 
 // ---- Read --------------------------------------------------------------
 
-export async function searchCatalog({ q = '', nutriScore = [], flag = null,
-  sort = 'recent', limit = PAGE_SIZE, offset = 0 } = {}) {
+export async function searchCatalog({ q = '', kind = null, nutriScore = [],
+  avoidFlags = [], sort = 'recent', limit = PAGE_SIZE, offset = 0 } = {}) {
   const cfg = await getConfig();
   if (!cfg.supabaseUrl) return { rows: [], total: 0 };
 
-  const params = new URLSearchParams();
-  params.set('select', 'id,product_name,brand,nutri_score,health_score,summary,red_flags,thumbnail_path,scan_count,updated_at,region');
+  // PostgREST takes repeated keys as AND, so we hand-build the query string
+  // to allow multiple `red_flags=not.cs.<...>` clauses.
+  const parts = [];
+  parts.push('select=id,product_name,brand,kind,nutri_score,health_score,summary,red_flags,thumbnail_path,scan_count,updated_at,region');
 
   if (q.trim()) {
     const term = q.trim().replace(/[(),]/g, ' ');
-    params.set('or', `(product_name.ilike.*${term}*,brand.ilike.*${term}*)`);
+    parts.push(`or=(product_name.ilike.*${encodeURIComponent(term)}*,brand.ilike.*${encodeURIComponent(term)}*)`);
+  }
+  if (kind === 'food' || kind === 'drink') {
+    parts.push(`kind=eq.${kind}`);
   }
   if (Array.isArray(nutriScore) && nutriScore.length > 0) {
-    params.set('nutri_score', `in.(${nutriScore.join(',')})`);
+    parts.push(`nutri_score=in.(${nutriScore.join(',')})`);
   }
-  if (flag) {
-    // jsonb contains: red_flags @> '[{"type": "palmOil"}]'
-    params.set('red_flags', `cs.[{"type":"${flag}"}]`);
+  if (Array.isArray(avoidFlags)) {
+    for (const flag of avoidFlags) {
+      // jsonb not contains — exclude rows whose red_flags array contains this type.
+      parts.push(`red_flags=not.cs.${encodeURIComponent(`[{"type":"${flag}"}]`)}`);
+    }
   }
 
-  if (sort === 'popular') params.set('order', 'scan_count.desc,updated_at.desc');
-  else if (sort === 'best') params.set('order', 'nutri_score.asc,scan_count.desc');
-  else params.set('order', 'updated_at.desc');
+  if (sort === 'popular') parts.push('order=scan_count.desc,updated_at.desc');
+  else if (sort === 'best') parts.push('order=nutri_score.asc,scan_count.desc');
+  else parts.push('order=updated_at.desc');
 
-  const url = `${cfg.supabaseUrl}/rest/v1/${TABLE}?${params.toString()}`;
+  const url = `${cfg.supabaseUrl}/rest/v1/${TABLE}?${parts.join('&')}`;
   const res = await fetch(url, {
     headers: {
       apikey: cfg.supabaseAnonKey,
@@ -60,7 +67,7 @@ export async function searchCatalog({ q = '', nutriScore = [], flag = null,
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Catalog search failed (${res.status}): ${text}`);
+    throw new Error(friendlyRestError(res.status, text));
   }
 
   const rows = await res.json();
@@ -122,6 +129,23 @@ function parseTotalFromContentRange(header) {
   if (!header) return null;
   const m = /\/(\d+)$/.exec(header);
   return m ? Number(m[1]) : null;
+}
+
+function friendlyRestError(status, body) {
+  // PGRST205 = relation not found. Most likely the schema SQL hasn't been
+  // run yet, or PostgREST hasn't reloaded its schema cache after the table
+  // was created.
+  const looksLikeMissingTable = /PGRST205|catalog_scans|schema cache/i.test(body || '');
+  if (status === 404 && looksLikeMissingTable) {
+    return 'Catalog isn\'t set up yet. In Supabase: run supabase/schema.sql, then Project Settings → Data API → Reload schema cache.';
+  }
+  if (status === 401 || status === 403) {
+    return 'Catalog auth failed — check that SUPABASE_ANON_KEY matches the project URL.';
+  }
+  if (status >= 500) {
+    return 'Catalog is unreachable right now. Try again in a moment.';
+  }
+  return `Catalog search failed (${status}).`;
 }
 
 // ---- Write -------------------------------------------------------------
