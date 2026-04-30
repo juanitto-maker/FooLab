@@ -8,16 +8,11 @@ import { renderArchiveGrid, clearArchiveGrid } from './archive.js';
 import { exportCard } from './cardexport.js';
 import * as storage from './storage.js';
 import * as catalog from './catalog.js';
+import { initLanguage, t, onLanguageChange } from './i18n.js';
 
 const SCREENS = ['scan', 'crop', 'analyzing', 'result', 'archive', 'detail', 'catalog', 'catalog-detail', 'about'];
 const PUBLISH_PREF_KEY = 'foolab.publishToCatalog';
-const TIPS = [
-  'Reading ingredients…',
-  'Checking E-numbers…',
-  'Counting the sugar…',
-  'Grading the NutriScore…',
-  'Looking for red flags…'
-];
+const TIP_KEYS = ['analyzingTip1', 'analyzingTip2', 'analyzingTip3', 'analyzingTip4', 'analyzingTip5'];
 
 const state = {
   currentScan: { photos: [], result: null },
@@ -44,6 +39,8 @@ const state = {
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
+  await initLanguage('langSelector');
+  onLanguageChange(handleLanguageChange);
   wireNav();
   wireScan();
   wireCrop();
@@ -57,6 +54,35 @@ async function init() {
   show('scan');
   registerSW();
   initCatalogAvailability();
+}
+
+// When the user picks a new language: re-paint the catalog search placeholder
+// (which depends on the active tab) and any open dynamic screens.
+function handleLanguageChange() {
+  const input = byId('catalogSearchInput');
+  if (input) input.placeholder = catalogSearchPlaceholder();
+
+  // Re-render whichever scan card is currently visible.
+  if (state.currentScan.result && !byId('screen-result').hidden) {
+    renderScorecard(state.currentScan.result, state.currentScan.photos[0]?.originalBlob, byId('resultMount'));
+  }
+  if (state.detailId && !byId('screen-detail').hidden) {
+    storage.get(state.detailId).then((scan) => {
+      if (scan) renderScorecard(scan.result, scan.thumbnail, byId('detailMount'));
+    }).catch(() => {});
+  }
+  if (!byId('screen-archive').hidden) {
+    openArchive().catch(() => {});
+  }
+  if (!byId('screen-catalog').hidden) {
+    renderCatalog();
+  }
+}
+
+function catalogSearchPlaceholder() {
+  if (state.catalog.kind === 'food') return t('catalogSearchFoodPlaceholder');
+  if (state.catalog.kind === 'drink') return t('catalogSearchDrinkPlaceholder');
+  return t('catalogSearchPlaceholder');
 }
 
 async function initCatalogAvailability() {
@@ -88,8 +114,8 @@ function wireNav() {
 
 async function shareApp() {
   const shareData = {
-    title: 'FooLab — food label scanner',
-    text: 'Scan any food label, get a NutriScore and red-flag alerts.',
+    title: t('pageTitle'),
+    text: t('heroSub'),
     url: location.origin || 'https://foolab.vercel.app'
   };
   try {
@@ -97,9 +123,9 @@ async function shareApp() {
       await navigator.share(shareData);
     } else if (navigator.clipboard) {
       await navigator.clipboard.writeText(shareData.url);
-      toast('Link copied to clipboard.');
+      toast(t('toastShareLinkCopied'));
     } else {
-      toast('Sharing not supported on this device.', { error: true });
+      toast(t('toastShareUnsupported'), { error: true });
     }
   } catch (err) {
     if (err?.name !== 'AbortError') console.warn('Share failed:', err);
@@ -128,7 +154,7 @@ function wireInstall() {
   window.addEventListener('appinstalled', () => {
     state.installPrompt = null;
     btn.hidden = true;
-    toast('FooLab installed. Find it on your home screen.');
+    toast(t('toastInstalled'));
   });
 }
 
@@ -162,7 +188,7 @@ async function ingestPhoto(file, { first }) {
       state.currentScan = { photos: [photo], result: null };
     } else {
       if (state.currentScan.photos.length >= 3) {
-        toast('Max 3 photos. Remove one first.', { error: true });
+        toast(t('toastMaxPhotos'), { error: true });
         return;
       }
       // Freeze the previous photo's crop before moving on, otherwise
@@ -173,7 +199,7 @@ async function ingestPhoto(file, { first }) {
     await enterCrop();
   } catch (err) {
     console.error(err);
-    toast(err.message || 'Could not process photo.', { error: true });
+    toast(err.message || t('toastCouldNotProcess'), { error: true });
   }
 }
 
@@ -218,7 +244,7 @@ async function enterCrop() {
   await Promise.resolve(); // let the section become visible for getBoundingClientRect
   const photos = state.currentScan.photos;
   const active = photos[photos.length - 1];
-  byId('photoMeta').textContent = `Photo ${photos.length} of ${photos.length}`;
+  byId('photoMeta').textContent = t('photoMeta', { n: photos.length, total: photos.length });
   renderPhotoStrip();
 
   destroyCropper();
@@ -246,7 +272,7 @@ function destroyCropper() {
 
 async function runAnalysis() {
   const photos = state.currentScan.photos;
-  if (photos.length === 0) return toast('Take a photo first.', { error: true });
+  if (photos.length === 0) return toast(t('toastTakePhotoFirst'), { error: true });
 
   await commitCurrentCrop();
   destroyCropper();
@@ -266,7 +292,7 @@ async function runAnalysis() {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data?.error || 'Something went wrong. Please try again.');
+      throw new Error(data?.error || t('toastSomethingWentWrong'));
     }
 
     state.currentScan.result = data;
@@ -274,7 +300,7 @@ async function runAnalysis() {
   } catch (err) {
     stopTipRotation();
     console.error('Analyze failed:', err);
-    toast(err.message || 'Analysis failed.', { error: true });
+    toast(err.message || t('toastAnalysisFailed'), { error: true });
     show('crop');
     // Rebuild the cropper so the user can retry without losing the photo.
     const active = photos[photos.length - 1];
@@ -286,10 +312,10 @@ function startTipRotation() {
   stopTipRotation();
   let i = 0;
   const tipEl = byId('analyzingTip');
-  tipEl.textContent = TIPS[0];
+  tipEl.textContent = t(TIP_KEYS[0]);
   state.tipTimer = setInterval(() => {
-    i = (i + 1) % TIPS.length;
-    tipEl.textContent = TIPS[i];
+    i = (i + 1) % TIP_KEYS.length;
+    tipEl.textContent = t(TIP_KEYS[i]);
   }, 2500);
 }
 
@@ -348,28 +374,28 @@ async function saveCurrent() {
       && byId('publishCheckbox').checked;
 
     if (wantPublish) {
-      toast('Saved. Publishing to catalog…');
+      toast(t('toastSavingPublishing'));
       // Fire-and-forget: a flaky network shouldn't block the local save.
       catalog.publishScan({ result, thumbnailBlob: record.thumbnail })
         .then((res) => {
           if (res?.action === 'inserted' || res?.action === 'merged') {
-            toast('Saved to archive and shared with the catalog.');
+            toast(t('toastSharedToCatalog'));
           } else if (res?.action === 'incremented') {
-            toast('Saved. Existing catalog entry got a +1.');
+            toast(t('toastCatalogIncremented'));
           } else if (res?.action === 'skipped') {
-            toast('Saved to archive.');
+            toast(t('toastSavedToArchive'));
           }
         })
         .catch((err) => {
           console.warn('Catalog publish failed:', err);
-          toast('Saved locally — publishing to catalog failed.', { error: true });
+          toast(t('toastCatalogPublishFailed'), { error: true });
         });
     } else {
-      toast('Saved to archive.');
+      toast(t('toastSavedToArchive'));
     }
   } catch (err) {
     console.error(err);
-    toast(err.message || 'Could not save.', { error: true });
+    toast(err.message || t('toastCouldNotSave'), { error: true });
   }
 }
 
@@ -395,7 +421,7 @@ async function shareCurrent() {
     });
   } catch (err) {
     console.error(err);
-    toast(err.message || 'Could not share.', { error: true });
+    toast(err.message || t('toastCouldNotShare'), { error: true });
   }
 }
 
@@ -413,7 +439,7 @@ async function openArchive() {
   try {
     await renderArchiveGrid(grid, empty, openDetail);
   } catch (err) {
-    toast(err.message || 'Could not open archive.', { error: true });
+    toast(err.message || t('toastCouldNotOpenArchive'), { error: true });
     return;
   }
   show('archive');
@@ -437,7 +463,7 @@ function wireDetail() {
 
 async function openDetail(id) {
   const scan = await storage.get(id);
-  if (!scan) return toast('Scan not found.', { error: true });
+  if (!scan) return toast(t('toastScanNotFound'), { error: true });
   state.detailId = id;
   renderScorecard(scan.result, scan.thumbnail, byId('detailMount'));
   show('detail');
@@ -450,20 +476,20 @@ async function shareDetail() {
   try {
     await exportCard(scan);
   } catch (err) {
-    toast(err.message || 'Could not share.', { error: true });
+    toast(err.message || t('toastCouldNotShare'), { error: true });
   }
 }
 
 async function deleteDetail() {
   if (!state.detailId) return;
-  if (!window.confirm('Delete this scan?')) return;
+  if (!window.confirm(t('confirmDeleteScan'))) return;
   try {
     await storage.remove(state.detailId);
     state.detailId = null;
     await refreshArchiveCount();
     openArchive();
   } catch (err) {
-    toast(err.message || 'Could not delete.', { error: true });
+    toast(err.message || t('toastCouldNotDelete'), { error: true });
   }
 }
 
@@ -489,11 +515,7 @@ function wireCatalog() {
         t.classList.toggle('is-active', t === tab);
       }
       // Reset the search input placeholder so the user knows the scope.
-      input.placeholder = state.catalog.kind === 'food'
-        ? 'Search foods…'
-        : state.catalog.kind === 'drink'
-          ? 'Search drinks…'
-          : 'Search by product or brand…';
+      input.placeholder = catalogSearchPlaceholder();
       reloadCatalog({ reset: true });
     });
   }
@@ -566,7 +588,7 @@ async function reloadCatalog({ reset }) {
     renderCatalog();
   } catch (err) {
     console.error(err);
-    toast(err.message || 'Could not load catalog.', { error: true });
+    toast(err.message || t('toastCouldNotLoadCatalog'), { error: true });
   } finally {
     state.catalog.loading = false;
   }
@@ -589,7 +611,9 @@ function renderCatalog() {
   empty.hidden = true;
 
   const total = state.catalog.total;
-  meta.textContent = total ? `${total} product${total === 1 ? '' : 's'}` : '';
+  meta.textContent = total
+    ? t(total === 1 ? 'catalogProductCount' : 'catalogProductsCount', { n: total })
+    : '';
 
   Promise.all(state.catalog.rows.map((r) =>
     r.thumbnailPath ? catalog.thumbnailUrl(r.thumbnailPath) : Promise.resolve(null)
@@ -628,7 +652,7 @@ function buildCatalogCard(row, thumbUrl) {
   body.className = 'archive-card-body';
   const name = document.createElement('div');
   name.className = 'archive-card-name';
-  name.textContent = row.productName || 'Unknown';
+  name.textContent = row.productName || t('unknownProduct');
   const metaLine = document.createElement('div');
   metaLine.className = 'archive-card-meta';
   metaLine.textContent = [row.brand, row.region].filter(Boolean).join(' · ') || '—';
@@ -649,7 +673,7 @@ async function openCatalogDetail(id) {
   state.catalogDetailId = id;
   const entry = await catalog.getCatalogEntry(id);
   if (!entry) {
-    toast('Could not load product.', { error: true });
+    toast(t('toastCouldNotLoadProduct'), { error: true });
     return;
   }
   // Map back to the result-shape that renderScorecard expects.
@@ -672,8 +696,8 @@ async function openCatalogDetail(id) {
   meta.innerHTML = '';
   if (entry.scanCount > 1 || entry.region) {
     const bits = [];
-    if (entry.scanCount > 1) bits.push(`Scanned ${entry.scanCount} times`);
-    if (entry.region) bits.push(`Region: ${entry.region}`);
+    if (entry.scanCount > 1) bits.push(t('catalogScannedTimes', { n: entry.scanCount }));
+    if (entry.region) bits.push(t('catalogRegion', { region: entry.region }));
     meta.textContent = bits.join(' · ');
   }
 

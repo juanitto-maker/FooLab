@@ -1,6 +1,7 @@
 // Archive grid. Detail rendering is delegated to scorecard.js in app.js.
 
 import { list } from './storage.js';
+import { t, getCurrentLang } from './i18n.js';
 
 export async function renderArchiveGrid(gridEl, emptyEl, onOpen) {
   gridEl.innerHTML = '';
@@ -38,7 +39,7 @@ export async function renderArchiveGrid(gridEl, emptyEl, onOpen) {
     body.className = 'archive-card-body';
     const name = document.createElement('div');
     name.className = 'archive-card-name';
-    name.textContent = scan.result?.productName || 'Unknown';
+    name.textContent = scan.result?.productName || t('unknownProduct');
     const meta = document.createElement('div');
     meta.className = 'archive-card-meta';
     meta.textContent = formatDate(scan.timestamp);
@@ -64,5 +65,5 @@ export function clearArchiveGrid(gridEl) {
 function formatDate(ts) {
   if (!ts) return '';
   const d = new Date(ts);
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString(getCurrentLang() || undefined, { month: 'short', day: 'numeric' });
 }
