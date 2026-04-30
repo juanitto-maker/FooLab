@@ -122,50 +122,57 @@ async function loadTranslations(code) {
     return;
   }
 
-  // Chunk the source dictionary into smaller batches and translate them
-  // in parallel. One 156-key Gemini request often truncates or stalls;
-  // four ~40-key requests are noticeably faster and more reliable, and
-  // partial successes still get cached so a retry only fetches the
-  // batches that failed.
-  try {
-    const partial = (cached && cached.strings) ? Object.assign({}, cached.strings) : {};
-    const merged = await translateInBatches(lang.englishName || lang.name, sourceStrings, partial);
+  // Chunk the source dictionary into small batches and translate them
+  // sequentially. One 156-key request can blow past Netlify Free's 10s
+  // function ceiling; four ~30-key requests each comfortably fit. Partial
+  // successes get cached so a retry only fetches the gaps. We keep this
+  // strictly sequential because parallel calls eat the per-minute Gemini
+  // quota and trigger the 429 cascade the user was hitting.
+  const partial = (cached && cached.strings) ? Object.assign({}, cached.strings) : {};
+  const { merged, error } = await translateInBatches(
+    lang.englishName || lang.name,
+    sourceStrings,
+    partial
+  );
 
-    // Save whatever we managed to fetch (even partial). If every batch
-    // failed, partial is still { } and we fall back to source for display.
-    if (Object.keys(merged).length > 0) {
-      try {
-        localStorage.setItem(cacheKey, JSON.stringify({
-          version: TRANSLATION_VERSION,
-          strings: merged
-        }));
-      } catch {}
-      currentTranslations = mergeWithSource(merged);
-    } else {
-      currentTranslations = sourceStrings;
-    }
-  } catch (err) {
-    console.warn('Translation fetch failed:', err);
+  // Save whatever we managed (even partial). On the next switch the
+  // backfill picks up the gaps without re-translating what's already cached.
+  if (Object.keys(merged).length > 0) {
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify({
+        version: TRANSLATION_VERSION,
+        strings: merged
+      }));
+    } catch {}
+    currentTranslations = mergeWithSource(merged);
+  } else {
     currentTranslations = sourceStrings;
-    if (/429|busy|overload|unavailable/i.test(err.message || '')) {
-      // Defer the overload toast until after the overlay closes — they
-      // shouldn't visually stack.
-      setTimeout(() => showOverloadToast(), 80);
-    }
+  }
+
+  // Surface a clear, deferred toast if the run was cut short.
+  if (error) {
+    const msg = (error.message || '').toLowerCase();
+    let key = 'toastTranslateOverloaded';
+    if (/quota|exhausted|429|rate/.test(msg)) key = 'toastTranslateOverloaded';
+    else if (/timeout|timed out|abort/.test(msg)) key = 'toastTranslateTimeout';
+    else if (/missing.*gemini.*key|server missing/.test(msg)) key = 'toastTranslateNotConfigured';
+    setTimeout(() => showFailureToast(key), 80);
   }
 }
 
-const BATCH_SIZE = 40;
-const PARALLEL_LIMIT = 3;
+const BATCH_SIZE = 30;
+const PARALLEL_LIMIT = 1;
 const FETCH_TIMEOUT_MS = 22000;
 
-// Split sourceStrings into batches, translate them in parallel (capped),
-// and merge results into `seed`. Each batch failure is non-fatal; we
-// keep whatever succeeded so the next call only retries the gaps.
+// Split sourceStrings into batches, translate them sequentially, and merge
+// results into `seed`. Each batch failure is non-fatal; we keep whatever
+// succeeded so the next call only retries the gaps. On a 429 we stop
+// scheduling more batches — keep firing while the quota is empty just
+// burns the rest of the per-minute window.
 async function translateInBatches(targetLanguage, source, seed) {
   const merged = Object.assign({}, seed);
   const allKeys = Object.keys(source).filter((k) => !merged[k]);
-  if (allKeys.length === 0) return merged;
+  if (allKeys.length === 0) return { merged, error: null };
 
   const batches = [];
   for (let i = 0; i < allKeys.length; i += BATCH_SIZE) {
@@ -175,20 +182,23 @@ async function translateInBatches(targetLanguage, source, seed) {
     batches.push(obj);
   }
 
-  // Pool: up to PARALLEL_LIMIT in flight at once.
+  let stopErr = null;
   let cursor = 0;
   async function worker() {
-    while (cursor < batches.length) {
+    while (cursor < batches.length && !stopErr) {
       const idx = cursor++;
       try {
         const part = await fetchTranslations(targetLanguage, batches[idx]);
         if (part) Object.assign(merged, part);
       } catch (err) {
-        // Surface 429s so the caller can show a toast, but don't stop
-        // sibling batches.
-        if (/429|busy|overload|unavailable/i.test(err.message || '')) {
-          throw err;
+        if (err.status === 429 || /429|quota|rate|exhausted/i.test(err.message || '')) {
+          // Stop the world — siblings will hit the same limit. Save what
+          // we have and surface the rate-limit error to the caller.
+          stopErr = err;
+          return;
         }
+        // Keep going on transient single-batch failures (timeout, parse
+        // glitch). Other batches may still succeed.
         console.warn('Batch translate failed (continuing):', err.message || err);
       }
     }
@@ -198,7 +208,7 @@ async function translateInBatches(targetLanguage, source, seed) {
     workers.push(worker());
   }
   await Promise.all(workers);
-  return merged;
+  return { merged, error: stopErr };
 }
 
 async function backfillMissingKeys(code, cachedStrings, cacheKey) {
@@ -426,13 +436,13 @@ function hideOverlay() {
   if (el) el.classList.remove('is-visible');
 }
 
-function showOverloadToast() {
+function showFailureToast(key) {
   const existing = document.getElementById('translateOverloadToast');
   if (existing) existing.remove();
   const toast = document.createElement('div');
   toast.id = 'translateOverloadToast';
   toast.className = 'toast toast-error';
-  toast.textContent = t('toastTranslateOverloaded');
+  toast.textContent = t(key);
   document.body.appendChild(toast);
   setTimeout(() => { toast.remove(); }, 6000);
 }
@@ -544,8 +554,8 @@ export async function translateContent(sources) {
     }
   } catch (err) {
     console.warn('Content translate failed:', err.message || err);
-    if (/429|busy|overload|unavailable/i.test(err.message || '')) {
-      showOverloadToast();
+    if (/429|busy|overload|unavailable|quota|rate/i.test(err.message || '')) {
+      showFailureToast('toastTranslateOverloaded');
     }
     missing.forEach((s) => { out[s] = s; });
   }
