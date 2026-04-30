@@ -1,7 +1,10 @@
 # Netlify deploy config. Vercel deploys ignore this file.
 #
-# Required env var on Netlify (Site settings → Environment variables):
+# Required env vars on Netlify (Site settings → Environment variables):
 #   GEMINI_API_KEY
+#   SUPABASE_URL                — for the public catalog
+#   SUPABASE_ANON_KEY           — public, returned to client by /api/config
+#   SUPABASE_SERVICE_ROLE_KEY   — secret, used by /api/publish to write
 # Optional:
 #   PUBLIC_APP_URL   — sent as Referer to Gemini (e.g. https://foolab.netlify.app)
 #

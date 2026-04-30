@@ -7,8 +7,10 @@ import { renderScorecard } from './scorecard.js';
 import { renderArchiveGrid, clearArchiveGrid } from './archive.js';
 import { exportCard } from './cardexport.js';
 import * as storage from './storage.js';
+import * as catalog from './catalog.js';
 
-const SCREENS = ['scan', 'crop', 'analyzing', 'result', 'archive', 'detail', 'about'];
+const SCREENS = ['scan', 'crop', 'analyzing', 'result', 'archive', 'detail', 'catalog', 'catalog-detail', 'about'];
+const PUBLISH_PREF_KEY = 'foolab.publishToCatalog';
 const TIPS = [
   'Reading ingredients…',
   'Checking E-numbers…',
@@ -22,7 +24,20 @@ const state = {
   detailId: null,
   cropper: null,
   tipTimer: null,
-  installPrompt: null
+  installPrompt: null,
+  catalog: {
+    enabled: false,
+    query: '',
+    nutriScore: [],
+    flag: null,
+    sort: 'recent',
+    offset: 0,
+    rows: [],
+    total: 0,
+    loading: false,
+    searchDebounce: null
+  },
+  catalogDetailId: null
 };
 
 document.addEventListener('DOMContentLoaded', init);
@@ -34,10 +49,23 @@ async function init() {
   wireResult();
   wireArchive();
   wireDetail();
+  wireCatalog();
+  wireCatalogDetail();
   wireInstall();
   await refreshArchiveCount();
   show('scan');
   registerSW();
+  initCatalogAvailability();
+}
+
+async function initCatalogAvailability() {
+  try {
+    state.catalog.enabled = await catalog.isCatalogEnabled();
+  } catch {
+    state.catalog.enabled = false;
+  }
+  byId('catalogBtn').hidden = !state.catalog.enabled;
+  byId('catalogCta').hidden = !state.catalog.enabled;
 }
 
 // --- Navigation -----------------------------------------------------------
@@ -52,6 +80,8 @@ function show(screen) {
 
 function wireNav() {
   byId('archiveBtn').addEventListener('click', openArchive);
+  byId('catalogBtn').addEventListener('click', openCatalog);
+  byId('catalogCta').addEventListener('click', (e) => { e.preventDefault(); openCatalog(); });
   byId('aboutBtn').addEventListener('click', () => show('about'));
   byId('aboutBackBtn').addEventListener('click', () => show('scan'));
   byId('shareAppBtn').addEventListener('click', shareApp);
@@ -284,6 +314,17 @@ function showResult() {
   stopTipRotation();
   const { photos, result } = state.currentScan;
   renderScorecard(result, photos[0]?.originalBlob, byId('resultMount'));
+
+  // Show the publish toggle only when the catalog is configured AND the scan
+  // is plausibly publishable (readable, has a product name).
+  const eligible = state.catalog.enabled && !result?.notReadable && !!result?.productName;
+  const wrap = byId('publishToggle');
+  wrap.hidden = !eligible;
+  if (eligible) {
+    const cb = byId('publishCheckbox');
+    cb.checked = readPublishPref();
+    cb.onchange = () => writePublishPref(cb.checked);
+  }
   show('result');
 }
 
@@ -302,11 +343,46 @@ async function saveCurrent() {
     };
     await storage.save(record);
     await refreshArchiveCount();
-    toast('Saved to archive.');
+
+    const wantPublish = state.catalog.enabled
+      && !byId('publishToggle').hidden
+      && byId('publishCheckbox').checked;
+
+    if (wantPublish) {
+      toast('Saved. Publishing to catalog…');
+      // Fire-and-forget: a flaky network shouldn't block the local save.
+      catalog.publishScan({ result, thumbnailBlob: record.thumbnail })
+        .then((res) => {
+          if (res?.action === 'inserted' || res?.action === 'merged') {
+            toast('Saved to archive and shared with the catalog.');
+          } else if (res?.action === 'incremented') {
+            toast('Saved. Existing catalog entry got a +1.');
+          } else if (res?.action === 'skipped') {
+            toast('Saved to archive.');
+          }
+        })
+        .catch((err) => {
+          console.warn('Catalog publish failed:', err);
+          toast('Saved locally — publishing to catalog failed.', { error: true });
+        });
+    } else {
+      toast('Saved to archive.');
+    }
   } catch (err) {
     console.error(err);
     toast(err.message || 'Could not save.', { error: true });
   }
+}
+
+function readPublishPref() {
+  try {
+    const v = localStorage.getItem(PUBLISH_PREF_KEY);
+    return v === null ? true : v === '1';
+  } catch { return true; }
+}
+
+function writePublishPref(on) {
+  try { localStorage.setItem(PUBLISH_PREF_KEY, on ? '1' : '0'); } catch {}
 }
 
 async function shareCurrent() {
@@ -390,6 +466,209 @@ async function deleteDetail() {
   } catch (err) {
     toast(err.message || 'Could not delete.', { error: true });
   }
+}
+
+// --- Catalog (public) -----------------------------------------------------
+
+function wireCatalog() {
+  byId('catalogBackBtn').addEventListener('click', () => show('scan'));
+
+  const input = byId('catalogSearchInput');
+  input.addEventListener('input', () => {
+    clearTimeout(state.catalog.searchDebounce);
+    state.catalog.searchDebounce = setTimeout(() => {
+      state.catalog.query = input.value;
+      reloadCatalog({ reset: true });
+    }, 250);
+  });
+
+  for (const chip of document.querySelectorAll('#screen-catalog [data-ns]')) {
+    chip.addEventListener('click', () => {
+      const v = chip.dataset.ns;
+      const i = state.catalog.nutriScore.indexOf(v);
+      if (i >= 0) state.catalog.nutriScore.splice(i, 1);
+      else state.catalog.nutriScore.push(v);
+      chip.classList.toggle('is-active');
+      reloadCatalog({ reset: true });
+    });
+  }
+
+  for (const chip of document.querySelectorAll('#screen-catalog [data-flag]')) {
+    chip.addEventListener('click', () => {
+      const v = chip.dataset.flag;
+      if (state.catalog.flag === v) {
+        state.catalog.flag = null;
+      } else {
+        state.catalog.flag = v;
+      }
+      for (const c of document.querySelectorAll('#screen-catalog [data-flag]')) {
+        c.classList.toggle('is-active', c.dataset.flag === state.catalog.flag);
+      }
+      reloadCatalog({ reset: true });
+    });
+  }
+
+  for (const chip of document.querySelectorAll('#screen-catalog [data-sort]')) {
+    chip.addEventListener('click', () => {
+      state.catalog.sort = chip.dataset.sort;
+      for (const c of document.querySelectorAll('#screen-catalog [data-sort]')) {
+        c.classList.toggle('is-active', c === chip);
+      }
+      reloadCatalog({ reset: true });
+    });
+  }
+
+  byId('catalogMoreBtn').addEventListener('click', () => reloadCatalog({ reset: false }));
+}
+
+async function openCatalog() {
+  show('catalog');
+  if (state.catalog.rows.length === 0) {
+    await reloadCatalog({ reset: true });
+  }
+}
+
+async function reloadCatalog({ reset }) {
+  if (state.catalog.loading) return;
+  state.catalog.loading = true;
+
+  if (reset) {
+    state.catalog.offset = 0;
+    state.catalog.rows = [];
+    state.catalog.total = 0;
+  }
+
+  try {
+    const { rows, total } = await catalog.searchCatalog({
+      q: state.catalog.query,
+      nutriScore: state.catalog.nutriScore,
+      flag: state.catalog.flag,
+      sort: state.catalog.sort,
+      offset: state.catalog.offset,
+      limit: 24
+    });
+    state.catalog.rows.push(...rows);
+    state.catalog.offset += rows.length;
+    if (typeof total === 'number') state.catalog.total = total;
+    renderCatalog();
+  } catch (err) {
+    console.error(err);
+    toast(err.message || 'Could not load catalog.', { error: true });
+  } finally {
+    state.catalog.loading = false;
+  }
+}
+
+function renderCatalog() {
+  const grid = byId('catalogGrid');
+  const empty = byId('catalogEmpty');
+  const meta = byId('catalogMeta');
+  const more = document.querySelector('.catalog-loadmore');
+
+  grid.innerHTML = '';
+
+  if (state.catalog.rows.length === 0) {
+    empty.hidden = false;
+    meta.textContent = '';
+    more.hidden = true;
+    return;
+  }
+  empty.hidden = true;
+
+  const total = state.catalog.total;
+  meta.textContent = total ? `${total} product${total === 1 ? '' : 's'}` : '';
+
+  Promise.all(state.catalog.rows.map((r) =>
+    r.thumbnailPath ? catalog.thumbnailUrl(r.thumbnailPath) : Promise.resolve(null)
+  )).then((urls) => {
+    state.catalog.rows.forEach((r, i) => {
+      grid.appendChild(buildCatalogCard(r, urls[i]));
+    });
+  });
+
+  more.hidden = state.catalog.offset >= state.catalog.total;
+}
+
+function buildCatalogCard(row, thumbUrl) {
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.className = 'archive-card catalog-card';
+
+  const thumb = document.createElement('div');
+  thumb.className = 'archive-card-thumb';
+  if (thumbUrl) thumb.style.backgroundImage = `url(${thumbUrl})`;
+
+  const letter = (row.nutriScore || 'C').toUpperCase();
+  const lbl = document.createElement('span');
+  lbl.className = `archive-card-letter ns-${letter}`;
+  lbl.textContent = letter;
+  thumb.appendChild(lbl);
+
+  if (row.scanCount > 1) {
+    const badge = document.createElement('span');
+    badge.className = 'catalog-card-badge';
+    badge.textContent = `×${row.scanCount}`;
+    thumb.appendChild(badge);
+  }
+
+  const body = document.createElement('div');
+  body.className = 'archive-card-body';
+  const name = document.createElement('div');
+  name.className = 'archive-card-name';
+  name.textContent = row.productName || 'Unknown';
+  const metaLine = document.createElement('div');
+  metaLine.className = 'archive-card-meta';
+  metaLine.textContent = [row.brand, row.region].filter(Boolean).join(' · ') || '—';
+  body.appendChild(name);
+  body.appendChild(metaLine);
+
+  card.appendChild(thumb);
+  card.appendChild(body);
+  card.addEventListener('click', () => openCatalogDetail(row.id));
+  return card;
+}
+
+function wireCatalogDetail() {
+  byId('catalogDetailBackBtn').addEventListener('click', () => show('catalog'));
+}
+
+async function openCatalogDetail(id) {
+  state.catalogDetailId = id;
+  const entry = await catalog.getCatalogEntry(id);
+  if (!entry) {
+    toast('Could not load product.', { error: true });
+    return;
+  }
+  // Map back to the result-shape that renderScorecard expects.
+  const resultShape = {
+    productName: entry.productName,
+    brand: entry.brand,
+    nutriScore: entry.nutriScore,
+    healthScore: entry.healthScore,
+    summary: entry.summary,
+    ingredients: entry.ingredients,
+    eNumbers: entry.eNumbers,
+    redFlags: entry.redFlags,
+    nutrition: entry.nutrition,
+    allergens: entry.allergens,
+    confidence: entry.confidence,
+    notReadable: false
+  };
+
+  const meta = byId('catalogDetailMeta');
+  meta.innerHTML = '';
+  if (entry.scanCount > 1 || entry.region) {
+    const bits = [];
+    if (entry.scanCount > 1) bits.push(`Scanned ${entry.scanCount} times`);
+    if (entry.region) bits.push(`Region: ${entry.region}`);
+    meta.textContent = bits.join(' · ');
+  }
+
+  // scorecard.renderScorecard ignores the photo blob argument today, so we
+  // just pass null. If it ever starts using it, swap to the public storage
+  // URL and fetch a Blob there.
+  renderScorecard(resultShape, null, byId('catalogDetailMount'));
+  show('catalog-detail');
 }
 
 // --- Utilities ------------------------------------------------------------

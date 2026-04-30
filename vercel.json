@@ -2,6 +2,9 @@
   "functions": {
     "api/scan.js": {
       "maxDuration": 30
+    },
+    "api/publish.js": {
+      "maxDuration": 30
     }
   }
 }

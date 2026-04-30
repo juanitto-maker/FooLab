@@ -1,4 +1,4 @@
-const CACHE_NAME = 'foolab-v3';
+const CACHE_NAME = 'foolab-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -12,6 +12,7 @@ const STATIC_ASSETS = [
   '/js/additives.js',
   '/js/archive.js',
   '/js/cardexport.js',
+  '/js/catalog.js',
   '/data/enumbers.json',
   '/icons/logo.svg',
   '/icons/icon-192.png',

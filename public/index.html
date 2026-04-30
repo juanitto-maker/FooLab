@@ -37,6 +37,15 @@
       </a>
 
       <nav class="topbar-nav" aria-label="App actions">
+        <button class="icon-btn" id="catalogBtn" type="button" aria-label="Browse public catalog" title="Catalog" hidden>
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+              d="M3 6h18M3 12h18M3 18h18"/>
+            <circle cx="6" cy="6" r="1.2" fill="currentColor"/>
+            <circle cx="6" cy="12" r="1.2" fill="currentColor"/>
+            <circle cx="6" cy="18" r="1.2" fill="currentColor"/>
+          </svg>
+        </button>
         <button class="icon-btn" id="archiveBtn" type="button" aria-label="Open archive" title="Archive">
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
             <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
@@ -145,6 +154,22 @@
         </div>
       </div>
 
+      <a class="catalog-cta" id="catalogCta" href="#catalog" hidden>
+        <div class="catalog-cta-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22">
+            <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+              d="M3 6h18M3 12h18M3 18h18"/>
+          </svg>
+        </div>
+        <div class="catalog-cta-text">
+          <div class="catalog-cta-title">Browse the public catalog</div>
+          <div class="catalog-cta-sub">Search products other shoppers have already scanned.</div>
+        </div>
+        <svg class="catalog-cta-chev" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6"/>
+        </svg>
+      </a>
+
       <div class="tips-card">
         <h2>Tips for a good scan</h2>
         <ul>
@@ -185,6 +210,14 @@
     <!-- 4. RESULT -->
     <section class="screen" id="screen-result" hidden>
       <div id="resultMount"></div>
+      <label class="publish-toggle" id="publishToggle" hidden>
+        <input type="checkbox" id="publishCheckbox" checked>
+        <span class="publish-toggle-track" aria-hidden="true"></span>
+        <span class="publish-toggle-text">
+          <span class="publish-toggle-title">Let the world know about your finding</span>
+          <span class="publish-toggle-sub">Adds this card to the public catalog so other shoppers can find it.</span>
+        </span>
+      </label>
       <div class="result-actions">
         <button class="btn btn-primary" id="saveBtn" type="button">
           <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
@@ -251,6 +284,61 @@
           <span>Delete</span>
         </button>
       </div>
+    </section>
+
+    <!-- 7. CATALOG (public) -->
+    <section class="screen" id="screen-catalog" hidden>
+      <div class="screen-header">
+        <button class="btn btn-ghost" id="catalogBackBtn" type="button">← Back</button>
+        <h2>Public catalog</h2>
+      </div>
+
+      <div class="catalog-search">
+        <input type="search" id="catalogSearchInput" placeholder="Search by product or brand…" autocomplete="off">
+      </div>
+
+      <div class="catalog-filters">
+        <div class="catalog-filter-row" role="group" aria-label="NutriScore filter">
+          <span class="catalog-filter-label">Score</span>
+          <button class="filter-chip ns-A" data-ns="A" type="button">A</button>
+          <button class="filter-chip ns-B" data-ns="B" type="button">B</button>
+          <button class="filter-chip ns-C" data-ns="C" type="button">C</button>
+          <button class="filter-chip ns-D" data-ns="D" type="button">D</button>
+          <button class="filter-chip ns-E" data-ns="E" type="button">E</button>
+        </div>
+        <div class="catalog-filter-row" role="group" aria-label="Red-flag filter">
+          <span class="catalog-filter-label">Flag</span>
+          <button class="filter-chip flag-chip" data-flag="palmOil" type="button">Palm oil</button>
+          <button class="filter-chip flag-chip" data-flag="highSugar" type="button">High sugar</button>
+          <button class="filter-chip flag-chip" data-flag="sweetener" type="button">Sweetener</button>
+          <button class="filter-chip flag-chip" data-flag="artificialColor" type="button">Artif. color</button>
+          <button class="filter-chip flag-chip" data-flag="ultraProcessed" type="button">Ultra-proc.</button>
+        </div>
+        <div class="catalog-filter-row" role="group" aria-label="Sort">
+          <span class="catalog-filter-label">Sort</span>
+          <button class="filter-chip sort-chip is-active" data-sort="recent" type="button">Recent</button>
+          <button class="filter-chip sort-chip" data-sort="popular" type="button">Popular</button>
+          <button class="filter-chip sort-chip" data-sort="best" type="button">Best score</button>
+        </div>
+      </div>
+
+      <div class="catalog-meta" id="catalogMeta"></div>
+      <div class="catalog-grid archive-grid" id="catalogGrid"></div>
+      <div class="empty-state" id="catalogEmpty" hidden>
+        <p id="catalogEmptyMsg">No products yet. Be the first — scan something.</p>
+      </div>
+      <div class="catalog-loadmore" hidden>
+        <button class="btn btn-secondary" id="catalogMoreBtn" type="button">Load more</button>
+      </div>
+    </section>
+
+    <!-- 8. CATALOG DETAIL -->
+    <section class="screen" id="screen-catalog-detail" hidden>
+      <div class="screen-header">
+        <button class="btn btn-ghost" id="catalogDetailBackBtn" type="button">← Catalog</button>
+      </div>
+      <div class="catalog-detail-meta" id="catalogDetailMeta"></div>
+      <div id="catalogDetailMount"></div>
     </section>
 
     <!-- ABOUT -->

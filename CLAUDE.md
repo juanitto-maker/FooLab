@@ -17,7 +17,7 @@ Target user: health-conscious shopper. Target device: **Android phone**. Develop
 | Languages v1 | EN only (prompt supports ES/DE/IT easily later) |
 | Capture | Native camera (`<input capture="environment">`) + post-capture crop |
 | Storage v1 | IndexedDB only, rolling cap 50 scans (no Supabase) |
-| Storage v2 | Optional Supabase sync — must not break v1 |
+| Storage v2 | IndexedDB stays primary. **Public catalog** mirrors saved scans to Supabase only when the user opts in via the "Let the world know about your finding" toggle. App must work fully when Supabase env vars are absent. |
 | Sharing | PNG card via Web Share API + download fallback |
 | Stack | Vanilla HTML/CSS/JS, no build, Vercel serverless, Gemini 2.5 Flash |
 | Model ID | Exactly `gemini-2.5-flash` — never alter |
@@ -41,13 +41,30 @@ Target user: health-conscious shopper. Target device: **Android phone**. Develop
 
 **`api/prompt.js`** — exports the prompt string from `PROMPT.md` as a JS template literal. Keep these two files in sync: PROMPT.md is the source of truth, prompt.js mirrors it.
 
+**`lib/catalog-core.js`** — framework-neutral publish pipeline for the public catalog. Exports `runPublish({ result, thumbnailBase64, supabaseUrl, supabaseServiceKey, geminiApiKey, publicAppUrl })` returning `{ status, body }`.
+- Drops scans with `notReadable: true`, `confidence` not in {medium, high}, or empty product name (returns 200 with `{ action: 'skipped', reason }`).
+- Computes `product_key = normalise(brand + productName)`: lowercase, strip diacritics, hyphenate.
+- Looks up existing rows with the same `product_key` via the Supabase wrapper.
+- If none → insert new row + upload thumbnail.
+- If some → asks Gemini 2.5 Flash to choose `merge_into | increment | insert_new`, accounting for regional recipe variants (EU vs US, etc.). On any Gemini error/timeout → falls back to `insert_new`.
+- Returns `{ action: 'inserted' | 'merged' | 'incremented' | 'skipped', id }`.
+
+**`lib/supabase.js`** — minimal `fetch`-based Supabase REST + Storage wrapper for server use. Always called with the service-role key (writes bypass RLS). Exports `makeSupabase({ url, serviceKey })` with `.select()`, `.insert()`, `.update()`, `.uploadThumbnail(bucket, path, base64Jpeg)`. Browser-side reads do NOT use this — they hit PostgREST directly with the anon key from `public/js/catalog.js`.
+
+**`api/publish.js`** + **`netlify/functions/publish.js`** — thin adapters for `/api/publish`, mirroring the `scan.js` pattern. Body shape: `{ result: <scan JSON>, thumbnailBase64: <string|null> }`. Read `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` from env.
+
+**`api/config.js`** + **`netlify/functions/config.js`** — `GET /api/config` returns `{ supabaseUrl, supabaseAnonKey }` for the browser. Both values are public; surfacing them via an endpoint avoids hardcoding into `index.html` and lets keys be rotated without a redeploy. Cached `max-age=300`.
+
 ### Frontend
 
 **`public/index.html`** — single-page app shell. All screens as `<section>` elements hidden/shown by `app.js`. Includes manifest link + SW registration.
 
 **`public/js/app.js`** — screen router, global state, event wiring.
-- Screens: `scan`, `crop`, `analyzing`, `result`, `archive`, `detail`
-- Holds `currentScan = { photos: [], cropped: null, result: null }`
+- Screens: `scan`, `crop`, `analyzing`, `result`, `archive`, `detail`, `catalog`, `catalog-detail`, `about`
+- Holds `currentScan = { photos: [], cropped: null, result: null }` and `state.catalog = { enabled, query, nutriScore[], flag, sort, offset, rows, total }`
+- On boot calls `catalog.isCatalogEnabled()` to show/hide the Catalog topbar button + landing CTA.
+- On Save, if the publish toggle is on, fires `catalog.publishScan({ result, thumbnailBlob })` after the local IndexedDB write — failures only toast, never block the local save.
+- Persists the publish toggle via `localStorage[foolab.publishToCatalog]` (default on).
 - Delegates to module files — does not contain feature logic itself.
 
 **`public/js/camera.js`** — photo capture pipeline.
@@ -63,6 +80,13 @@ Target user: health-conscious shopper. Target device: **Android phone**. Develop
 - Default crop starts at center 70% of image
 - Exports: `initCropper(base64)` → `Promise<base64 of cropped region>`
 - DPR-aware rendering so crops are crisp on high-DPI phones
+
+**`public/js/catalog.js`** — public catalog client. Lazy-fetches `/api/config`, caches the result.
+- Reads (`searchCatalog`, `getCatalogEntry`) hit Supabase PostgREST directly with the anon key — RLS allows public SELECT.
+- `searchCatalog({ q, nutriScore[], flag, sort, limit, offset })` → `{ rows, total }`. Sort options: `recent` | `popular` | `best`. Uses `Range` + `Prefer: count=exact` for pagination + total.
+- Writes (`publishScan({ result, thumbnailBlob })`) always go through `/api/publish` so the AI dedup runs server-side with the service-role key.
+- Builds a 480×480 JPEG thumbnail (~30–50 KB) by centre-cropping the original photo before sending — keeps payload small and matches the catalog grid ratio.
+- If `/api/config` is absent or returns nulls, `isCatalogEnabled()` returns false and the UI hides every catalog affordance.
 
 **`public/js/storage.js`** — IndexedDB wrapper, storage-agnostic.
 - DB name: `foolab`, version: `1`, store: `scans` (keyPath: `id`)
@@ -117,12 +141,14 @@ Target user: health-conscious shopper. Target device: **Android phone**. Develop
 
 ## UI Screens
 
-1. **scan** — hero "Scan a label" camera button + secondary "Choose from gallery". Top bar carries the brand and four icon buttons: Archive (with unread count badge), Share app, Install (shown only when `beforeinstallprompt` fires), About. Feature row + tips card below.
+1. **scan** — hero "Scan a label" camera button + secondary "Choose from gallery". Top bar carries the brand and icon buttons: Catalog (only when configured), Archive (with unread count badge), Share app, Install (shown only when `beforeinstallprompt` fires), About. Feature row, "Browse the public catalog" tile (only when configured), and tips card below.
 2. **crop** — photo with draggable crop box, "+ Add another photo" (max 3), **Analyze** (primary)
 3. **analyzing** — centered spinner + rotating tip text ("Reading ingredients…", "Checking E-numbers…")
-4. **result** — scorecard + action row Save / Share / Rescan
+4. **result** — scorecard + "Let the world know about your finding" toggle (only when catalog is configured + scan is publishable) + action row Save / Share / Rescan
 5. **archive** — grid of scan cards, empty state CTA, back button
 6. **detail** — scorecard + Delete (with confirm) + back
+7. **catalog** — search input, NutriScore + flag + sort filter chips, public scan grid (reuses `.archive-card`), Load more button, empty state. Hidden entirely when Supabase env vars aren't set.
+8. **catalog-detail** — shared scorecard rendering + meta line (`Scanned N times · Region: …`) + back to catalog.
 
 All transitions: just show/hide sections. No animations in v1 (snappy on low-end Android).
 
@@ -153,6 +179,45 @@ Full schema in `PROMPT.md`. Brief:
 - 500 — unexpected. Body `{error:"..."}`
 
 Client surfaces `error` message directly to user.
+
+### Catalog endpoints
+
+```
+POST /api/publish
+Content-Type: application/json
+
+{
+  "result": { /* the same JSON shape that /api/scan returns */ },
+  "thumbnailBase64": "..."   // optional, ~480px square JPEG, no data: prefix
+}
+
+→ 200 { action: "inserted" | "merged" | "incremented" | "skipped", id?, reason? }
+→ 400 { error: "Missing scan result." }
+→ 500 { error: "..." }
+```
+
+```
+GET /api/config
+→ 200 { supabaseUrl: string|null, supabaseAnonKey: string|null }
+```
+
+Browser reads of the catalog go directly to `${supabaseUrl}/rest/v1/catalog_scans` with the anon key — no FooLab endpoint involved. RLS policy allows anon SELECT only.
+
+### Supabase schema
+
+`supabase/schema.sql` is the source of truth. Setup steps live in `supabase/README.md`. Key fields on `catalog_scans`:
+
+- `product_key` — normalised brand+name, used for dedup grouping
+- `region` — optional ISO-style hint when AI dedup detects a regional variant
+- `scan_count` — bumped each time a duplicate is detected
+- `thumbnail_path` — object key in the `catalog-thumbnails` public bucket
+- `red_flags`, `e_numbers`, `ingredients`, `nutrition`, `allergens` — `jsonb`, mirror the scan JSON
+
+Required env vars (all three needed for the catalog to be active):
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (server-only — never returned by `/api/config`)
 
 ## Gemini Integration
 
@@ -191,6 +256,8 @@ Manual only in v1 (no test framework). Verify before each deploy:
 5. Archive → save 51 items → oldest auto-deleted
 6. Share button → PNG generated, share sheet opens on Android
 7. Offline → archive still loads, scan shows offline error
+8. Catalog opt-in (Supabase configured): save with toggle on → row appears in catalog grid; second user scanning the same product → existing row's scan count goes up (or AI splits into a regional variant)
+9. Catalog opt-in (Supabase env vars empty): topbar Catalog button hidden, landing CTA hidden, publish toggle hidden — app behaves exactly as v1
 
 ## Known Gotchas
 
@@ -202,7 +269,7 @@ Manual only in v1 (no test framework). Verify before each deploy:
 
 ## Out of Scope for v1 (Roadmap)
 
-- Supabase sync
+- Per-user Supabase sync (private archive in the cloud) — the public catalog is shared, but private scans stay in IndexedDB
 - User accounts
 - Additional UI languages
 - Barcode lookup / OpenFoodFacts fallback
@@ -210,6 +277,7 @@ Manual only in v1 (no test framework). Verify before each deploy:
 - Personal diet profile filters
 - Push notifications
 - Meal history / trend analytics
+- Catalog moderation queue / report-flag UI for inappropriate entries
 - **Bring-your-own Gemini API key**: each user gets a small quota of trial scans on the shared app key, then is prompted to paste their own Gemini API key (🔑 icon in header) to keep using the app. Key stored in `localStorage` on-device only, sent per-request to `api/scan.js`, which prefers it over the shared env key. Modal includes a "How to get a key" link to Google AI Studio (`https://aistudio.google.com/apikey`) and a short tutorial for AI newcomers. Trial counter tracked in `localStorage` (cheat-able, but acceptable for honor-system beta).
 
 ## References
