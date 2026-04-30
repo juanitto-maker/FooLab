@@ -21,6 +21,8 @@ import { languages, sourceStrings, RTL_CODES, TRANSLATION_VERSION } from './tran
 
 const STORAGE_KEY = 'foolab.lang';
 const CACHE_PREFIX = 'foolab.translations.';
+const CONTENT_CACHE_PREFIX = 'foolab.content.';
+const CONTENT_CACHE_LIMIT = 4000; // entries; ~ a few hundred KB
 const SUBSCRIBERS = new Set();
 
 let currentLangCode = 'en';
@@ -354,4 +356,198 @@ function showOverloadToast() {
   toast.textContent = t('toastTranslateOverloaded');
   document.body.appendChild(toast);
   setTimeout(() => { toast.remove(); }, 6000);
+}
+
+// --- Dynamic content translation -----------------------------------------
+//
+// Catalog rows, archive entries, and fresh scan results contain free-form
+// English text (productName, brand, summary, ingredients, redFlag details,
+// eNumber names/notes, tips, allergens) that the static UI dictionary
+// can't cover. translateContent batches the missing strings into a single
+// /api/translate call and caches them keyed by the source string itself,
+// so two products with the same brand only translate that brand once per
+// language, ever.
+//
+// Cache layout: localStorage['foolab.content.<langCode>'] = { source: translated, ... }
+// English is identity (no cache, no API call).
+// Brand-name preservation is handled by the prompt in lib/translate-core.js.
+
+function readContentCache(code) {
+  try {
+    const raw = localStorage.getItem(CONTENT_CACHE_PREFIX + code);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return (parsed && typeof parsed === 'object') ? parsed : {};
+  } catch { return {}; }
+}
+
+function writeContentCache(code, cache) {
+  try {
+    // Soft cap — drop oldest half if we blow past the limit. Map entries
+    // preserve insertion order so the oldest are at the front.
+    const keys = Object.keys(cache);
+    if (keys.length > CONTENT_CACHE_LIMIT) {
+      const drop = keys.length - Math.floor(CONTENT_CACHE_LIMIT * 0.7);
+      const trimmed = {};
+      keys.slice(drop).forEach((k) => { trimmed[k] = cache[k]; });
+      cache = trimmed;
+    }
+    localStorage.setItem(CONTENT_CACHE_PREFIX + code, JSON.stringify(cache));
+  } catch {
+    // quota exceeded — give up silently, next call will retry the API
+  }
+}
+
+// Translate a list of source strings into the active language. Returns a
+// { source: translated } map containing every input. Uses the per-language
+// content cache; only un-cached strings hit /api/translate.
+//
+// Inputs are de-duplicated and trimmed; empty/whitespace strings map to
+// themselves.
+export async function translateContent(sources) {
+  const code = currentLangCode;
+  const out = {};
+
+  if (!Array.isArray(sources) || sources.length === 0) return out;
+  if (code === 'en') {
+    for (const s of sources) out[s] = s;
+    return out;
+  }
+
+  // Normalise + dedupe
+  const unique = [];
+  const seen = new Set();
+  for (const s of sources) {
+    if (s == null) continue;
+    const str = String(s);
+    if (!str.trim()) { out[str] = str; continue; }
+    if (seen.has(str)) continue;
+    seen.add(str);
+    unique.push(str);
+  }
+  if (unique.length === 0) return out;
+
+  const cache = readContentCache(code);
+  const missing = [];
+  for (const s of unique) {
+    if (cache[s]) out[s] = cache[s];
+    else missing.push(s);
+  }
+
+  if (missing.length === 0) return out;
+
+  // Batch into one /api/translate call. Keys are stable s0..sN — values
+  // come back in the same shape from translate-core.
+  const strings = {};
+  missing.forEach((s, i) => { strings['s' + i] = s; });
+
+  const lang = languages.find((l) => l.code === code);
+  if (!lang) {
+    missing.forEach((s) => { out[s] = s; });
+    return out;
+  }
+
+  try {
+    const translations = await fetchTranslations(lang.englishName || lang.name, strings);
+    if (translations) {
+      missing.forEach((s, i) => {
+        const v = translations['s' + i];
+        if (v && String(v).trim()) {
+          cache[s] = v;
+          out[s] = v;
+        } else {
+          out[s] = s;
+        }
+      });
+      writeContentCache(code, cache);
+    } else {
+      missing.forEach((s) => { out[s] = s; });
+    }
+  } catch (err) {
+    console.warn('Content translate failed:', err.message || err);
+    if (/429|busy|overload|unavailable/i.test(err.message || '')) {
+      showOverloadToast();
+    }
+    missing.forEach((s) => { out[s] = s; });
+  }
+
+  return out;
+}
+
+// Translate a scan result into the active language. Returns a new result
+// object with productName / brand / summary / tips / ingredients /
+// allergens / redFlags[].detail / eNumbers[].name / eNumbers[].note
+// translated. Untouched fields (nutriScore, healthScore, nutrition table,
+// confidence, severities, codes) stay canonical.
+//
+// English just returns the input unchanged.
+export async function translateScanResult(result) {
+  if (!result || currentLangCode === 'en' || result.notReadable) return result;
+
+  const sources = [];
+  const push = (v) => {
+    if (v != null && String(v).trim()) sources.push(String(v));
+  };
+  push(result.productName);
+  push(result.brand);
+  push(result.summary);
+  push(result.tips);
+  push(result.reason);
+  if (Array.isArray(result.ingredients)) result.ingredients.forEach(push);
+  if (Array.isArray(result.allergens)) result.allergens.forEach(push);
+  if (Array.isArray(result.redFlags)) {
+    result.redFlags.forEach((f) => push(f && f.detail));
+  }
+  if (Array.isArray(result.eNumbers)) {
+    result.eNumbers.forEach((e) => {
+      if (!e) return;
+      push(e.name);
+      push(e.note);
+    });
+  }
+
+  const map = await translateContent(sources);
+  const tr = (v) => (v != null && map[String(v)]) ? map[String(v)] : v;
+
+  return {
+    ...result,
+    productName: tr(result.productName),
+    brand: tr(result.brand),
+    summary: tr(result.summary),
+    tips: tr(result.tips),
+    reason: tr(result.reason),
+    ingredients: Array.isArray(result.ingredients) ? result.ingredients.map(tr) : result.ingredients,
+    allergens: Array.isArray(result.allergens) ? result.allergens.map(tr) : result.allergens,
+    redFlags: Array.isArray(result.redFlags)
+      ? result.redFlags.map((f) => f ? { ...f, detail: tr(f.detail) } : f)
+      : result.redFlags,
+    eNumbers: Array.isArray(result.eNumbers)
+      ? result.eNumbers.map((e) => e ? { ...e, name: tr(e.name), note: tr(e.note) } : e)
+      : result.eNumbers
+  };
+}
+
+// Translate a list of catalog/archive grid rows in one batch. Returns a
+// new array with productName / brand translated (all the grid card shows).
+// Pass through unchanged when EN.
+export async function translateRows(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) return rows;
+  if (currentLangCode === 'en') return rows;
+
+  const sources = [];
+  for (const r of rows) {
+    if (r && r.productName) sources.push(String(r.productName));
+    if (r && r.brand) sources.push(String(r.brand));
+  }
+  if (sources.length === 0) return rows;
+
+  const map = await translateContent(sources);
+  return rows.map((r) => {
+    if (!r) return r;
+    return {
+      ...r,
+      productName: r.productName && map[String(r.productName)] ? map[String(r.productName)] : r.productName,
+      brand: r.brand && map[String(r.brand)] ? map[String(r.brand)] : r.brand
+    };
+  });
 }

@@ -8,14 +8,14 @@ import { renderArchiveGrid, clearArchiveGrid } from './archive.js';
 import { exportCard } from './cardexport.js';
 import * as storage from './storage.js';
 import * as catalog from './catalog.js';
-import { initLanguage, t, onLanguageChange } from './i18n.js';
+import { initLanguage, t, onLanguageChange, translateScanResult, translateRows, getCurrentLang } from './i18n.js';
 
 const SCREENS = ['scan', 'crop', 'analyzing', 'result', 'archive', 'detail', 'catalog', 'catalog-detail', 'about'];
 const PUBLISH_PREF_KEY = 'foolab.publishToCatalog';
 const TIP_KEYS = ['analyzingTip1', 'analyzingTip2', 'analyzingTip3', 'analyzingTip4', 'analyzingTip5'];
 
 const state = {
-  currentScan: { photos: [], result: null },
+  currentScan: { photos: [], result: null, translatedResult: null },
   detailId: null,
   cropper: null,
   tipTimer: null,
@@ -29,6 +29,7 @@ const state = {
     sort: 'recent',
     offset: 0,
     rows: [],
+    rowsCanonical: [],
     total: 0,
     loading: false,
     searchDebounce: null
@@ -57,25 +58,37 @@ async function init() {
 }
 
 // When the user picks a new language: re-paint the catalog search placeholder
-// (which depends on the active tab) and any open dynamic screens.
-function handleLanguageChange() {
+// (which depends on the active tab) and any open dynamic screens. Each
+// branch translates the dynamic content too — fresh strings come from the
+// per-language content cache so the second switch back to a previously
+// used language is free (no API call).
+async function handleLanguageChange() {
   const input = byId('catalogSearchInput');
   if (input) input.placeholder = catalogSearchPlaceholder();
 
-  // Re-render whichever scan card is currently visible.
   if (state.currentScan.result && !byId('screen-result').hidden) {
-    renderScorecard(state.currentScan.result, state.currentScan.photos[0]?.originalBlob, byId('resultMount'));
+    const tr = await translateScanResult(state.currentScan.result);
+    renderScorecard(tr, state.currentScan.photos[0]?.originalBlob, byId('resultMount'));
   }
   if (state.detailId && !byId('screen-detail').hidden) {
-    storage.get(state.detailId).then((scan) => {
-      if (scan) renderScorecard(scan.result, scan.thumbnail, byId('detailMount'));
-    }).catch(() => {});
+    try {
+      const scan = await storage.get(state.detailId);
+      if (scan) {
+        const tr = await translateScanResult(scan.result);
+        renderScorecard(tr, scan.thumbnail, byId('detailMount'));
+      }
+    } catch {}
   }
   if (!byId('screen-archive').hidden) {
     openArchive().catch(() => {});
   }
   if (!byId('screen-catalog').hidden) {
+    // Re-translate visible rows in place so the cache picks up the new lang.
+    state.catalog.rows = await translateRows(state.catalog.rowsCanonical || state.catalog.rows);
     renderCatalog();
+  }
+  if (state.catalogDetailId && !byId('screen-catalog-detail').hidden) {
+    openCatalogDetail(state.catalogDetailId).catch(() => {});
   }
 }
 
@@ -185,7 +198,7 @@ async function ingestPhoto(file, { first }) {
     };
 
     if (first) {
-      state.currentScan = { photos: [photo], result: null };
+      state.currentScan = { photos: [photo], result: null, translatedResult: null };
     } else {
       if (state.currentScan.photos.length >= 3) {
         toast(t('toastMaxPhotos'), { error: true });
@@ -284,6 +297,9 @@ async function runAnalysis() {
   startTipRotation();
 
   try {
+    // We always scan in English so the catalog dedup key (brand+productName)
+    // stays canonical across users. The result is then translated client-side
+    // for display, with the per-language content cache absorbing the cost.
     const response = await fetch('/api/scan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -296,6 +312,7 @@ async function runAnalysis() {
     }
 
     state.currentScan.result = data;
+    state.currentScan.translatedResult = await translateScanResult(data);
     showResult();
   } catch (err) {
     stopTipRotation();
@@ -330,15 +347,15 @@ function wireResult() {
   byId('saveBtn').addEventListener('click', saveCurrent);
   byId('shareBtn').addEventListener('click', shareCurrent);
   byId('rescanBtn').addEventListener('click', () => {
-    state.currentScan = { photos: [], result: null };
+    state.currentScan = { photos: [], result: null, translatedResult: null };
     show('scan');
   });
 }
 
 function showResult() {
   stopTipRotation();
-  const { photos, result } = state.currentScan;
-  renderScorecard(result, photos[0]?.originalBlob, byId('resultMount'));
+  const { photos, result, translatedResult } = state.currentScan;
+  renderScorecard(translatedResult || result, photos[0]?.originalBlob, byId('resultMount'));
 
   // Show the publish toggle only when the catalog is configured AND the scan
   // is plausibly publishable (readable, has a product name).
@@ -465,7 +482,8 @@ async function openDetail(id) {
   const scan = await storage.get(id);
   if (!scan) return toast(t('toastScanNotFound'), { error: true });
   state.detailId = id;
-  renderScorecard(scan.result, scan.thumbnail, byId('detailMount'));
+  const tr = await translateScanResult(scan.result);
+  renderScorecard(tr, scan.thumbnail, byId('detailMount'));
   show('detail');
 }
 
@@ -569,6 +587,7 @@ async function reloadCatalog({ reset }) {
   if (reset) {
     state.catalog.offset = 0;
     state.catalog.rows = [];
+    state.catalog.rowsCanonical = [];
     state.catalog.total = 0;
   }
 
@@ -582,9 +601,11 @@ async function reloadCatalog({ reset }) {
       offset: state.catalog.offset,
       limit: 24
     });
-    state.catalog.rows.push(...rows);
+    state.catalog.rowsCanonical.push(...rows);
     state.catalog.offset += rows.length;
     if (typeof total === 'number') state.catalog.total = total;
+    // Translate the canonical rows for display. EN is identity.
+    state.catalog.rows = await translateRows(state.catalog.rowsCanonical);
     renderCatalog();
   } catch (err) {
     console.error(err);
@@ -704,7 +725,8 @@ async function openCatalogDetail(id) {
   // scorecard.renderScorecard ignores the photo blob argument today, so we
   // just pass null. If it ever starts using it, swap to the public storage
   // URL and fetch a Blob there.
-  renderScorecard(resultShape, null, byId('catalogDetailMount'));
+  const tr = await translateScanResult(resultShape);
+  renderScorecard(tr, null, byId('catalogDetailMount'));
   show('catalog-detail');
 }
 

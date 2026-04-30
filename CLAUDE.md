@@ -67,13 +67,23 @@ Target user: health-conscious shopper. Target device: **Android phone**. Develop
 
 **`public/index.html`** — single-page app shell. All screens as `<section>` elements hidden/shown by `app.js`. Includes manifest link + SW registration. Every translatable string is marked with `data-i18n="key"` (or `data-i18n-placeholder` / `data-i18n-title` / `data-i18n-aria-label`), and `<html data-i18n-page-title="pageTitle">` drives `document.title`. The flag-bubble switcher mounts into `<div id="langSelector">` at the **left** of the topbar.
 
-**`public/js/i18n.js`** — Sacred-Verse-style translation runtime (vanilla JS port).
+**`public/js/i18n.js`** — Sacred-Verse-style translation runtime (vanilla JS port). Two layers of translation, both cached per-device per-language.
+
+*Static UI strings:*
 - `initLanguage(containerId)`: read saved code from `localStorage[foolab.lang]`, set `<html lang>` + `dir`, load translations, paint DOM, build the flag-bubble dropdown.
 - `setLanguage(code)`: persist + show overlay + fetch `/api/translate` (cache by language + `TRANSLATION_VERSION`) + re-paint + notify subscribers.
-- `t(key, replacements)`: lookup with placeholder substitution (`{n}`, `{total}`, …). Falls back to source string if a key is missing from the cache (e.g. for newly added strings between cache versions); a background `backfillMissingKeys` fetches just the missing keys and merges them in.
-- `applyTranslations(root)`: paints `data-i18n*` attributes across the DOM. Modules with dynamic content (`scorecard.js`, `archive.js`, `app.js`) call `t()` directly and re-render via `onLanguageChange()`.
-- Builds the round flag bubble (40 px) using `https://flagcdn.com/w80/<countryCode>.png` for the bubble itself and `w40` for dropdown items, exactly like Sacred Verse.
-- RTL set on `<html dir>` for `ar`, `he`, `fa`, `ur`.
+- `t(key, replacements)`: lookup with placeholder substitution (`{n}`, `{total}`, …). Falls back to source string if a key is missing from the cache; a background `backfillMissingKeys` fetches just the missing keys and merges them in.
+- `applyTranslations(root)`: paints `data-i18n*` attributes across the DOM. Modules with dynamic content call `t()` directly and re-render via `onLanguageChange()`.
+
+*Dynamic content (scan results, catalog rows, archive entries):*
+- `translateContent(sources)`: batched translation of an arbitrary list of source strings. De-duplicates, hits the per-language content cache (`localStorage['foolab.content.<code>']`), translates only the missing strings via `/api/translate`, returns a `{ source: translated }` map. Cap of 4000 entries per language with oldest-first eviction.
+- `translateScanResult(result)`: deep-translates a scan result's user-facing fields (`productName`, `brand`, `summary`, `tips`, `ingredients[]`, `allergens[]`, `redFlags[].detail`, `eNumbers[].name+note`). Untouched: `nutriScore`, `healthScore`, `nutrition`, `confidence`, severities, codes — these stay canonical.
+- `translateRows(rows)`: lighter version for grid views, only translates `productName` + `brand`.
+- All three short-circuit to identity when the active language is `en`.
+
+Catalog dedup and IndexedDB always store the canonical English result — translation is purely a display concern, so the same product scanned by two users in different languages still merges into one catalog row.
+
+Switcher: round flag bubble (40 px) using `https://flagcdn.com/w80/<countryCode>.png` for the bubble itself and `w40` for dropdown items, exactly like Sacred Verse. RTL set on `<html dir>` for `ar`, `he`, `fa`, `ur`.
 
 **`public/js/translations-data.js`** — single source of truth for every UI string + the 48-language list (codes, native names, `flagcdn` country codes, English names sent to Gemini). Bump `TRANSLATION_VERSION` whenever `sourceStrings` change so old caches invalidate.
 
