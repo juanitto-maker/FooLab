@@ -142,7 +142,7 @@ Target user: health-conscious shopper. Target device: **Android phone**. Develop
 
 ## UI Screens
 
-1. **scan** — hero "Scan a label" camera button + secondary "Choose from gallery". Top bar carries the brand and icon buttons: Catalog (only when configured), Archive (with unread count badge), Share app, Install (shown only when `beforeinstallprompt` fires), About. Feature row, "Browse the public catalog" tile (only when configured), and tips card below.
+1. **scan** — hero "Scan a label" camera button + secondary "Choose from gallery". Top bar carries the brand and icon buttons: Archive (with unread count badge), Share app, Install (shown only when `beforeinstallprompt` fires), About. The catalog is reached from a prominent hero tile under the camera buttons (only when configured), not from the topbar — the tile is the canonical entry. Feature row + 3-photo tips card below.
 2. **crop** — photo with draggable crop box, "+ Add another photo" (max 3), **Analyze** (primary)
 3. **analyzing** — centered spinner + rotating tip text ("Reading ingredients…", "Checking E-numbers…")
 4. **result** — scorecard + "Let the world know about your finding" toggle (only when catalog is configured + scan is publishable) + action row Save / Share / Rescan

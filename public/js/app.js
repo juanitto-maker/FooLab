@@ -65,7 +65,6 @@ async function initCatalogAvailability() {
   } catch {
     state.catalog.enabled = false;
   }
-  byId('catalogBtn').hidden = !state.catalog.enabled;
   byId('catalogCta').hidden = !state.catalog.enabled;
 }
 
@@ -81,7 +80,6 @@ function show(screen) {
 
 function wireNav() {
   byId('archiveBtn').addEventListener('click', openArchive);
-  byId('catalogBtn').addEventListener('click', openCatalog);
   byId('catalogCta').addEventListener('click', (e) => { e.preventDefault(); openCatalog(); });
   byId('aboutBtn').addEventListener('click', () => show('about'));
   byId('aboutBackBtn').addEventListener('click', () => show('scan'));
