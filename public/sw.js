@@ -1,4 +1,4 @@
-const CACHE_NAME = 'foolab-v6';
+const CACHE_NAME = 'foolab-v7';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

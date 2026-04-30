@@ -116,17 +116,18 @@ a:hover { text-decoration: underline; }
 
 .topbar-nav { display: flex; align-items: center; gap: 2px; }
 
-/* Language selector — flag bubble (header LEFT) + dropdown.
+/* Language selector — flag bubble (header RIGHT) + dropdown.
    Sacred-Verse style; vanilla CSS instead of Tailwind. */
 .lang-selector {
   position: relative;
   display: inline-flex;
   align-items: center;
   flex: 0 0 auto;
+  margin-left: 4px;
 }
 .lang-bubble {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: 2px solid rgba(46, 125, 50, 0.35);
   background-color: #eef3ea;
@@ -155,7 +156,8 @@ a:hover { text-decoration: underline; }
 .lang-dropdown {
   position: absolute;
   top: calc(100% + 8px);
-  left: 0;
+  right: 0;
+  left: auto;
   width: 220px;
   max-height: 60vh;
   overflow-y: auto;
@@ -230,8 +232,18 @@ a:hover { text-decoration: underline; }
 .translation-overlay-text { font-size: 15px; color: var(--ink); }
 @keyframes foolab-spin { to { transform: rotate(360deg); } }
 
-/* RTL adjustments */
-html[dir="rtl"] .lang-dropdown { left: auto; right: 0; }
+/* RTL: dropdown swaps to left edge when whole UI is RTL */
+html[dir="rtl"] .lang-dropdown { right: auto; left: 0; }
+
+/* Phone-width: keep the topbar single-line. The brand "tag" line wraps the
+   header to two rows on narrow screens once the flag bubble is added —
+   hide it below 380px so the icons stay aligned. */
+@media (max-width: 380px) {
+  .brand-tag { display: none; }
+  .topbar-nav { gap: 0; }
+  .icon-btn { width: 36px; height: 36px; }
+  .topbar-inner { gap: 6px; padding: 8px 12px; }
+}
 
 .icon-btn {
   position: relative;
