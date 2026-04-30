@@ -83,7 +83,8 @@ Target user: health-conscious shopper. Target device: **Android phone**. Develop
 
 **`public/js/catalog.js`** — public catalog client. Lazy-fetches `/api/config`, caches the result.
 - Reads (`searchCatalog`, `getCatalogEntry`) hit Supabase PostgREST directly with the anon key — RLS allows public SELECT.
-- `searchCatalog({ q, nutriScore[], flag, sort, limit, offset })` → `{ rows, total }`. Sort options: `recent` | `popular` | `best`. Uses `Range` + `Prefer: count=exact` for pagination + total.
+- `searchCatalog({ q, kind, nutriScore[], avoidFlags[], sort, limit, offset })` → `{ rows, total }`. `kind` is `'food'` | `'drink'` | `null` (all). `avoidFlags` is a list of `red_flags[].type` values to **exclude** (translates to repeated `red_flags=not.cs.<...>` PostgREST clauses, AND'd). Sort options: `recent` | `popular` | `best`. Uses `Range` + `Prefer: count=exact` for pagination + total.
+- Translates PostgREST errors into actionable user copy — e.g. PGRST205 says "run supabase/schema.sql, then reload the schema cache".
 - Writes (`publishScan({ result, thumbnailBlob })`) always go through `/api/publish` so the AI dedup runs server-side with the service-role key.
 - Builds a 480×480 JPEG thumbnail (~30–50 KB) by centre-cropping the original photo before sending — keeps payload small and matches the catalog grid ratio.
 - If `/api/config` is absent or returns nulls, `isCatalogEnabled()` returns false and the UI hides every catalog affordance.
@@ -147,7 +148,7 @@ Target user: health-conscious shopper. Target device: **Android phone**. Develop
 4. **result** — scorecard + "Let the world know about your finding" toggle (only when catalog is configured + scan is publishable) + action row Save / Share / Rescan
 5. **archive** — grid of scan cards, empty state CTA, back button
 6. **detail** — scorecard + Delete (with confirm) + back
-7. **catalog** — search input, NutriScore + flag + sort filter chips, public scan grid (reuses `.archive-card`), Load more button, empty state. Hidden entirely when Supabase env vars aren't set.
+7. **catalog** — Food / All / Drinks segmented control, search input (placeholder narrows to the active tab), collapsible Filters disclosure (NutriScore "Keep" chips, multi-select "Avoid" chips for red-flag types, sort), public scan grid (reuses `.archive-card`), Load more button, empty state. Hidden entirely when Supabase env vars aren't set.
 8. **catalog-detail** — shared scorecard rendering + meta line (`Scanned N times · Region: …`) + back to catalog.
 
 All transitions: just show/hide sections. No animations in v1 (snappy on low-end Android).
@@ -209,6 +210,7 @@ Browser reads of the catalog go directly to `${supabaseUrl}/rest/v1/catalog_scan
 
 - `product_key` — normalised brand+name, used for dedup grouping
 - `region` — optional ISO-style hint when AI dedup detects a regional variant
+- `kind` — `'food'` | `'drink'`, derived server-side from the AI's `category` field (PROMPT.md enum: `drink|solid|snack|dairy|meat|baked|frozen|condiment|other`) plus a productName keyword fallback. Drives the catalog tabs.
 - `scan_count` — bumped each time a duplicate is detected
 - `thumbnail_path` — object key in the `catalog-thumbnails` public bucket
 - `red_flags`, `e_numbers`, `ingredients`, `nutrition`, `allergens` — `jsonb`, mirror the scan JSON

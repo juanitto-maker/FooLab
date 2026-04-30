@@ -128,6 +128,22 @@
         <input type="file" accept="image/*" id="galleryInput" hidden>
       </div>
 
+      <a class="catalog-cta catalog-cta-hero" id="catalogCta" href="#catalog" hidden>
+        <div class="catalog-cta-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="26" height="26">
+            <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+              d="M3 6h18M3 12h18M3 18h18"/>
+          </svg>
+        </div>
+        <div class="catalog-cta-text">
+          <div class="catalog-cta-title">Search the public catalog first</div>
+          <div class="catalog-cta-sub">Other shoppers may have already scanned this product. Scan only if you can't find it here.</div>
+        </div>
+        <svg class="catalog-cta-chev" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6"/>
+        </svg>
+      </a>
+
       <div class="feature-row">
         <div class="feature">
           <div class="feature-icon" style="background:linear-gradient(135deg,#2e7d32,#66bb6a)">A</div>
@@ -154,30 +170,15 @@
         </div>
       </div>
 
-      <a class="catalog-cta" id="catalogCta" href="#catalog" hidden>
-        <div class="catalog-cta-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="22" height="22">
-            <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-              d="M3 6h18M3 12h18M3 18h18"/>
-          </svg>
-        </div>
-        <div class="catalog-cta-text">
-          <div class="catalog-cta-title">Browse the public catalog</div>
-          <div class="catalog-cta-sub">Search products other shoppers have already scanned.</div>
-        </div>
-        <svg class="catalog-cta-chev" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-          <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6"/>
-        </svg>
-      </a>
-
       <div class="tips-card">
-        <h2>Tips for a good scan</h2>
-        <ul>
-          <li>Fill the frame with the ingredients list.</li>
-          <li>Bright, even light — avoid glare on shiny packaging.</li>
-          <li>Hold steady, tap to focus until the text is sharp.</li>
-          <li>Add a second photo of the nutrition table for the best grade.</li>
-        </ul>
+        <h2>How to scan well</h2>
+        <p class="tips-lead">Take three photos for the best card:</p>
+        <ol class="tips-numbered">
+          <li><strong>The whole product</strong> — front of pack, used as the catalog thumbnail.</li>
+          <li><strong>The ingredients list</strong> — close-up, sharp text, fill the frame.</li>
+          <li><strong>The nutrition table</strong> — for an accurate NutriScore.</li>
+        </ol>
+        <p class="tips-foot">Bright, even light. Hold steady. Tap to focus until the text is sharp.</p>
       </div>
     </section>
 
@@ -293,34 +294,45 @@
         <h2>Public catalog</h2>
       </div>
 
+      <div class="catalog-tabs" role="tablist" aria-label="Catalog kind">
+        <button class="catalog-tab is-active" data-kind="" type="button" role="tab">All</button>
+        <button class="catalog-tab" data-kind="food" type="button" role="tab">Food</button>
+        <button class="catalog-tab" data-kind="drink" type="button" role="tab">Drinks</button>
+      </div>
+
       <div class="catalog-search">
         <input type="search" id="catalogSearchInput" placeholder="Search by product or brand…" autocomplete="off">
       </div>
 
-      <div class="catalog-filters">
-        <div class="catalog-filter-row" role="group" aria-label="NutriScore filter">
-          <span class="catalog-filter-label">Score</span>
-          <button class="filter-chip ns-A" data-ns="A" type="button">A</button>
-          <button class="filter-chip ns-B" data-ns="B" type="button">B</button>
-          <button class="filter-chip ns-C" data-ns="C" type="button">C</button>
-          <button class="filter-chip ns-D" data-ns="D" type="button">D</button>
-          <button class="filter-chip ns-E" data-ns="E" type="button">E</button>
+      <details class="catalog-filters-wrap">
+        <summary>Filters</summary>
+        <div class="catalog-filters">
+          <div class="catalog-filter-row" role="group" aria-label="NutriScore filter">
+            <span class="catalog-filter-label">Keep</span>
+            <button class="filter-chip ns-A" data-ns="A" type="button">A</button>
+            <button class="filter-chip ns-B" data-ns="B" type="button">B</button>
+            <button class="filter-chip ns-C" data-ns="C" type="button">C</button>
+            <button class="filter-chip ns-D" data-ns="D" type="button">D</button>
+            <button class="filter-chip ns-E" data-ns="E" type="button">E</button>
+          </div>
+          <div class="catalog-filter-row" role="group" aria-label="Avoid filter">
+            <span class="catalog-filter-label">Avoid</span>
+            <button class="filter-chip avoid-chip" data-avoid="palmOil" type="button">Palm oil</button>
+            <button class="filter-chip avoid-chip" data-avoid="highSugar" type="button">High sugar</button>
+            <button class="filter-chip avoid-chip" data-avoid="highSalt" type="button">High salt</button>
+            <button class="filter-chip avoid-chip" data-avoid="sweetener" type="button">Sweetener</button>
+            <button class="filter-chip avoid-chip" data-avoid="artificialColor" type="button">Artif. color</button>
+            <button class="filter-chip avoid-chip" data-avoid="preservative" type="button">Preservative</button>
+            <button class="filter-chip avoid-chip" data-avoid="ultraProcessed" type="button">Ultra-proc.</button>
+          </div>
+          <div class="catalog-filter-row" role="group" aria-label="Sort">
+            <span class="catalog-filter-label">Sort</span>
+            <button class="filter-chip sort-chip is-active" data-sort="recent" type="button">Recent</button>
+            <button class="filter-chip sort-chip" data-sort="popular" type="button">Popular</button>
+            <button class="filter-chip sort-chip" data-sort="best" type="button">Best score</button>
+          </div>
         </div>
-        <div class="catalog-filter-row" role="group" aria-label="Red-flag filter">
-          <span class="catalog-filter-label">Flag</span>
-          <button class="filter-chip flag-chip" data-flag="palmOil" type="button">Palm oil</button>
-          <button class="filter-chip flag-chip" data-flag="highSugar" type="button">High sugar</button>
-          <button class="filter-chip flag-chip" data-flag="sweetener" type="button">Sweetener</button>
-          <button class="filter-chip flag-chip" data-flag="artificialColor" type="button">Artif. color</button>
-          <button class="filter-chip flag-chip" data-flag="ultraProcessed" type="button">Ultra-proc.</button>
-        </div>
-        <div class="catalog-filter-row" role="group" aria-label="Sort">
-          <span class="catalog-filter-label">Sort</span>
-          <button class="filter-chip sort-chip is-active" data-sort="recent" type="button">Recent</button>
-          <button class="filter-chip sort-chip" data-sort="popular" type="button">Popular</button>
-          <button class="filter-chip sort-chip" data-sort="best" type="button">Best score</button>
-        </div>
-      </div>
+      </details>
 
       <div class="catalog-meta" id="catalogMeta"></div>
       <div class="catalog-grid archive-grid" id="catalogGrid"></div>
