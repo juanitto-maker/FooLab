@@ -132,12 +132,22 @@ function parseTotalFromContentRange(header) {
 }
 
 function friendlyRestError(status, body) {
-  // PGRST205 = relation not found. Most likely the schema SQL hasn't been
-  // run yet, or PostgREST hasn't reloaded its schema cache after the table
-  // was created.
-  const looksLikeMissingTable = /PGRST205|catalog_scans|schema cache/i.test(body || '');
-  if (status === 404 && looksLikeMissingTable) {
+  // PostgREST returns JSON like
+  //   {"code":"PGRST205","message":"...","hint":null,"details":null}
+  // or for SQL-level errors
+  //   {"code":"42703","message":"column ... does not exist","hint":...,"details":...}
+  // Pull the message out so the user sees something actionable.
+  let parsed = null;
+  try { parsed = JSON.parse(body); } catch {}
+
+  const code = parsed?.code || '';
+  const msg = parsed?.message || '';
+
+  if (code === 'PGRST205' || /catalog_scans/i.test(msg) && /not.*find|schema cache/i.test(msg)) {
     return 'Catalog isn\'t set up yet. In Supabase: run supabase/schema.sql, then Project Settings → Data API → Reload schema cache.';
+  }
+  if (code === '42703' || /column .* does not exist/i.test(msg)) {
+    return 'Catalog schema is out of date. In Supabase: re-run supabase/schema.sql, then Project Settings → Data API → Reload schema cache.';
   }
   if (status === 401 || status === 403) {
     return 'Catalog auth failed — check that SUPABASE_ANON_KEY matches the project URL.';
@@ -145,6 +155,7 @@ function friendlyRestError(status, body) {
   if (status >= 500) {
     return 'Catalog is unreachable right now. Try again in a moment.';
   }
+  if (msg) return `Catalog query failed: ${msg}`;
   return `Catalog search failed (${status}).`;
 }
 
